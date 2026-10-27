@@ -137,3 +137,25 @@ Add runtime dependencies with `uv add <package>` and development tools with
 `uv add --dev <package>`. Run `uv lock --upgrade` for an intentional dependency
 upgrade, then run the checks and commit both `pyproject.toml` and `uv.lock` as
 applicable.
+
+## Calibration analysis notebook
+
+[`src/analysis/calibration_analysis.py`](src/analysis/calibration_analysis.py) is a
+percent-format Python notebook (`# %%` code cells and `# %% [markdown]` explanations).
+Run cells in a compatible editor, or execute the full analysis:
+
+```powershell
+uv run python src/analysis/calibration_analysis.py
+```
+
+Edit `SESSION_ID` at the top to select a recording, or set it to `None` for the
+newest recording. The default pins the analyzed sample for reproducibility.
+Set `SHOW_PLOTS = True` for interactive figures. Reports, plots, and detailed JSON
+statistics are written under the selected session's `analysis/` directory; raw
+recordings are never changed.
+
+The notebook includes integrity checks, raw-landmark feature recomputation,
+label/hold coverage, distribution and correlation plots, whole-hold threshold
+validation, transition timing, boundary sensitivity, normalization diagnostics,
+and a transfer check using frozen thresholds from the preceding analysis.
+It also saves its conclusions and records the limitations of single-session data.

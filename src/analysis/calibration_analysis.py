@@ -397,6 +397,13 @@ for name in feature_names:
     auc = rank_auc(x[mask], is_invalid[mask]) if all(by_label.values()) else None
     statistics[name] = {
         "by_label": by_label,
+        # Inspect complete labeled ranges too, independently of boundary trimming.
+        "untrimmed_class_range": {
+            label: list(map(float, np.quantile(x[(labels == label) & np.isfinite(x)], [0, 1])))
+            if np.any((labels == label) & np.isfinite(x))
+            else None
+            for label in ("valid", "invalid")
+        },
         "auc_invalid_high": auc,
         "direction_free_rank_separation": max(auc, 1 - auc) if auc is not None else None,
         "blocked_threshold": {mode: evaluate_threshold(name, primary_mask, mode) for mode in ("raw", "deviation")},
