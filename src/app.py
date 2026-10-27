@@ -4,13 +4,16 @@ import argparse
 import logging
 import math
 from contextlib import ExitStack
+from pathlib import Path
 from time import monotonic
 
 import cv2
 
 from capture import CameraCapture, CaptureError
+from features import FeatureConfig, FeatureExtractor
 from pose import PoseError, PoseEstimator
 from preview import VideoPreview
+from recording import CalibrationRecorder, RecordingError
 from reporting import PoseDiagnostics
 
 
@@ -37,7 +40,19 @@ def main() -> int:
         action="store_true",
         help="show video; quit with Q, Esc, or the window close button",
     )
+    parser.add_argument("--calibrate", action="store_true", help="record labeled landmarks and features; opens preview")
+    parser.add_argument(
+        "--output", type=Path, default=Path("data/calibration"), help="calibration session parent directory"
+    )
     args = parser.parse_args()
+    try:
+        feature_config = (
+            FeatureConfig.load(Path(__file__).resolve().parent.parent / "features.toml")
+            if args.calibrate
+            else FeatureConfig()
+        )
+    except (OSError, ValueError) as error:
+        parser.error(f"Cannot load feature configuration: {error}")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     count = 0
@@ -47,7 +62,15 @@ def main() -> int:
         with ExitStack() as stack:
             estimator = stack.enter_context(PoseEstimator())
             camera = stack.enter_context(CameraCapture(args.camera))
-            preview = stack.enter_context(VideoPreview()) if args.preview else None
+            preview = stack.enter_context(VideoPreview()) if args.preview or args.calibrate else None
+            recorder = None
+            extractor = None
+            if args.calibrate:
+                extractor = FeatureExtractor(feature_config)
+                recorder = stack.enter_context(
+                    CalibrationRecorder(args.output, feature_config, args.camera, estimator.model_path)
+                )
+                logging.info("Recording to %s; focus preview and use V/I/U to label posture.", recorder.path)
             if preview is not None:
                 logging.info("Preview enabled; press Q or Esc in the window to stop.")
             started = monotonic()
@@ -65,13 +88,26 @@ def main() -> int:
                 # 3. Report: summarize detection, confidence, and processing rate.
                 diagnostics.report(frame, pose, inference_seconds)
 
+                if recorder is not None and extractor is not None:
+                    features = extractor.extract(pose)
+                    recorder.record(frame, pose, features)
+                    if preview is not None:
+                        quality = "usable" if features.measurement_valid else "unusable"
+                        preview.status_text = (
+                            f"{recorder.label.upper()} | {quality} | {monotonic() - started:.1f}s | "
+                            f"saved {recorder.saved_count}/{recorder.frame_count}"
+                        )
+
                 # 4. Preview: draw on a copy, keeping the captured image read-only.
-                if preview is not None and not preview.show(frame, pose):
-                    logging.info("Preview closed by user.")
-                    break
+                if preview is not None:
+                    if not preview.show(frame, pose):
+                        logging.info("Preview closed by user.")
+                        break
+                    if recorder is not None:
+                        recorder.set_label(preview.last_key)
     except KeyboardInterrupt:
         logging.info("Stopped by user.")
-    except (CaptureError, PoseError) as error:
+    except (CaptureError, PoseError, RecordingError) as error:
         logging.error("%s", error)
         return 1
     except cv2.error as error:

@@ -4,7 +4,7 @@
 
 Build a local Python application that uses a webcam to detect sustained deviations from a user's calibrated reference posture. Develop and validate one module at a time, beginning with camera capture.
 
-The initial application has an optional live camera preview, with no configuration framework, cloud service, or custom model training. It runs in a single process with a synchronous processing loop and prints results to the console. A reference posture is a user-selected baseline, not a medical assessment of correct posture.
+The application has an optional live camera preview and an explicit calibration-recording mode, with no cloud service or custom model training. It runs in a single process with a synchronous processing loop. Calibration recording loads the project-level features.toml, saves landmark/feature samples locally, and accepts manual posture labels. A reference posture is a user-selected baseline, not a medical assessment of correct posture.
 
 ## Initial assumptions
 
@@ -23,6 +23,7 @@ A front-facing camera is the starting constraint. Forward slouching and neck dis
 | `capture` | Open the webcam, read frames, attach timestamps, release the device | Camera index and a few optional capture parameters | `Frame` |
 | `pose` | Run a pretrained pose model and expose relevant landmarks and confidence | `Frame` | `PoseObservation` |
 | `features` | Calculate normalized geometric measurements and determine measurement validity | `PoseObservation` | `PostureFeatures` |
+| `recording` | Persist raw landmarks, features, and manual labels in bounded Parquet parts | Frames, observations, features, preview keys | Local session dataset and metadata |
 | `calibration` | Collect valid reference samples and calculate a stable baseline | `PostureFeatures` during calibration | `ReferencePosture` |
 | `evaluation` | Compare features with the baseline, smooth measurements, and apply persistence rules | Features, baseline, timestamp | `PostureResult` |
 | `reporting` | Print status changes and diagnostic information | Calibration progress or `PostureResult` | Console output |
@@ -76,19 +77,21 @@ The command-line runner captures frames and estimates poses by default. The opti
 
 `src/pose.py` implements a context-managed `PoseEstimator` using MediaPipe Pose Landmarker with the local Lite float16 version 1 model, one person, VIDEO mode, confidence thresholds of 0.5, and segmentation disabled. Model setup instructions are in `models/README.md`; the model binary is excluded from Git and is never downloaded at application startup.
 
-`estimate(frame)` converts BGR to RGB without modifying the source image and returns the nose, eyes, ears, and shoulders with confidence information. The model receives milliseconds relative to the first frame. Capture timestamps must strictly increase; millisecond rounding collisions advance the model timestamp by 1 ms. Observations preserve the original nanosecond timestamp. Reopening the estimator resets the model clock.
+`estimate(frame)` converts BGR to RGB without modifying the source image and returns the nose, eyes, ears, mouth corners, and shoulders with confidence information. The model receives milliseconds relative to the first frame. Capture timestamps must strictly increase; millisecond rounding collisions advance the model timestamp by 1 ms. Observations preserve the original nanosecond timestamp. Reopening the estimator resets the model clock.
 
 No detection returns an empty observation, without carrying forward the previous pose. Model loading or inference failures raise `PoseError` and stop the pipeline. A returned pose may still contain unreliable landmarks: the feature module will decide measurement validity. The preview draws only in-frame landmarks with visibility and presence of at least 0.5; this display filter is not a posture decision.
 
 ### Feature extraction
 
-Begin with shoulder tilt, sideways head displacement, and changes in head position relative to the shoulders. Define each feature's units, required landmarks, and sign convention during implementation. Avoid requiring hips for the initial upper-body prototype.
+src/features.py implements shoulder-line angle, head x/y offsets, mouth-to-shoulder and eye-to-ear vertical midpoint separations, apparent shoulder width, and nose-to-ear distance asymmetry. Decorated functions keep each feature name, required landmarks, units, formal definition, interpretation, and calculation together. Registries derive names from those functions. FEATURES.md is generated from those definitions. No feature requires hips. Optional temporal operations add rolling population standard deviation and instantaneous velocity per base feature using actual timestamps. History resets per feature on invalid measurements or excessive gaps.
 
 Validate feature behavior before deciding which measurements should drive posture classification. Apparent head movement may reflect distance changes or rotation rather than slouching.
 
 ### Calibration
 
-Collect several seconds of valid measurements while the user holds their chosen reference posture. Reject incomplete observations and detect excessive movement before accepting a baseline. The exact duration and stability limits remain implementation decisions.
+Calibration recording is implemented before reference fitting: --calibrate opens the preview, loads features.toml, and records raw landmarks plus features with persistent V/I/U labels. Label changes apply from the next frame; measurement validity remains separate from posture labels. A context-managed recorder writes independently readable Parquet parts every 5 capture seconds or 300 frames and flushes on exit. Each part is written to a temporary file before rename. Session metadata preserves effective configuration, feature definitions, schema/feature versions, and the exact model hash. See README.md for schema and recovery details.
+
+Reference fitting remains future work: collect several seconds of valid measurements while the user holds their chosen reference posture. Reject incomplete observations and detect excessive movement before accepting a baseline. The exact duration and stability limits remain implementation decisions.
 
 Calibration progress is separate from posture status. Evaluation begins only after a valid baseline exists.
 
@@ -129,7 +132,7 @@ Install dependencies incrementally. The pose milestone adds MediaPipe and its se
 5. **Temporal classification:** add reference comparisons, smoothing, persistence, hysteresis, and explicit unknown status. Test timing and tracking-loss behavior.
 6. **Evaluation:** use explicitly recorded, labeled clips to measure false warnings, missed deviations, and detection delay; revise features and thresholds based on the results.
 
-Complete and review each milestone before expanding the next. Beyond the optional camera preview, keep UI, extensive configuration, persistence, alerts, concurrency, and custom training outside the initial scope.
+Complete and review each milestone before expanding the next. Beyond the camera preview, explicit labeled recording, and feature configuration, keep extensive UI, alerts, concurrency, and custom training outside the initial scope.
 
 ## Reference
 
@@ -137,13 +140,16 @@ Complete and review each milestone before expanding the next. Beyond the optiona
 
 ## Current development state
 
-Milestone 2 is implemented with an explicit synchronous loop in `src/app.py`:
+Capture, pose estimation, feature extraction, and labeled calibration recording are implemented. The synchronous app loop remains explicit:
 
 ```text
-camera.read() -> estimator.estimate(frame) -> diagnostics.report(frame, pose, timing)
-                                                        -> preview.show(frame, pose) [optional]
+camera.read() -> estimator.estimate(frame) -> diagnostics.report(...)
+                                      -> extractor.extract(pose) [calibration mode]
+                                      -> recorder.record(frame, pose, features)
+                                      -> preview.show(frame, pose)
+                                      -> recorder.set_label(preview.last_key) [affects next frame]
 ```
 
-Each stage is a direct call with a named intermediate value; there is no generic pipeline engine. Capture lives in `src/capture.py`, inference and contracts in `src/pose.py`, interval diagnostics in `src/reporting.py`, and rendering in `src/preview.py`. Diagnostics report overall processing FPS, detected poses per interval, mean inference latency, and the latest landmark visibility/presence. Preview renders on an image copy.
+Default capture and optional preview preserve the previous behavior. --calibrate opens the preview automatically and enables feature extraction and recording. All resources are context managed; the recorder closes before the preview, camera, and estimator. Labels begin as unlabeled. No classification or fitted reference baseline exists yet.
 
-Run from the project root with `python src/app.py`, after dependency installation and model setup described in `models/README.md`. Pose estimation is always enabled; no pose or model CLI arguments were added. Existing `--camera`, `--duration`, and `--preview` options remain. `pytest.ini` adds `src/` to the test import path. Camera-independent tests cover capture, pose conversion and missing detections, timestamp handling, stage order, cleanup, diagnostics, and image preservation. Real model inference, upper-body tracking quality, and hardware processing rate still require verification. Feature extraction is the next implementation milestone after pose validation and review.
+Run uv run src/app.py --calibrate after dependency installation and local model setup. See README.md for controls, storage, and configuration; FEATURES.md for the generated mathematical reference. Camera-independent tests cover geometry and normalization, feature quality, motion timing/reset behavior, label boundaries through the application loop, Parquet round trips, write failures, interruption, resource cleanup, pose conversion, and source-image preservation. Real hardware capture, live preview key focus, and tracking quality require manual validation.

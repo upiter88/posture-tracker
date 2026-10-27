@@ -82,14 +82,33 @@ def draw_pose(frame: Frame, pose: PoseObservation) -> NDArray[np.uint8]:
 class VideoPreview:
     WINDOW_NAME = "Posture Tracker - Camera"
 
+    def __init__(self) -> None:
+        self.last_key = -1
+        self.status_text: str | None = None
+
     def __enter__(self) -> VideoPreview:
         cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_NORMAL)
         return self
 
     def show(self, frame: Frame, pose: PoseObservation) -> bool:
         """Display a frame; return False when the user requests shutdown."""
-        cv2.imshow(self.WINDOW_NAME, draw_pose(frame, pose))
+        image = draw_pose(frame, pose)
+        if self.status_text is not None:
+            # White text on a dark strip remains legible against the camera image.
+            cv2.rectangle(image, (0, 0), (image.shape[1], 58), (25, 25, 25), -1)
+            cv2.putText(image, self.status_text, (10, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 255, 255), 1)
+            cv2.putText(
+                image,
+                "V valid | I invalid | U unlabeled | Q/Esc quit",
+                (10, 47),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.48,
+                (255, 255, 255),
+                1,
+            )
+        cv2.imshow(self.WINDOW_NAME, image)
         key = cv2.waitKey(1) & 0xFF
+        self.last_key = key + 32 if ord("A") <= key <= ord("Z") else key
         if key in (ord("q"), ord("Q"), 27):
             return False
         return cv2.getWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_VISIBLE) >= 1

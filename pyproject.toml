@@ -7,6 +7,7 @@ dependencies = [
     "mediapipe>=0.10.30,<0.11",
     "numpy>=1.26,<3",
     "opencv-contrib-python>=4.11,<5",
+    "pyarrow>=19,<24",
 ]
 
 [dependency-groups]

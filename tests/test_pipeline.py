@@ -117,3 +117,96 @@ def test_preview_does_not_mutate_capture_and_skips_unusable_landmarks():
     assert rendered.any()
     missing = draw_pose(frame, PoseObservation(10, 100, 80, {}))
     assert missing.any()
+
+
+def test_calibration_pipeline_records_preview_labels_and_cleans_up(monkeypatch, tmp_path):
+    import json
+
+    import pyarrow.parquet as pq
+
+    events = []
+    model = tmp_path / "model.task"
+    model.write_bytes(b"fake model")
+
+    class Camera:
+        sequence = 0
+
+        def __enter__(self):
+            return self
+
+        def read(self):
+            self.sequence += 1
+            return Frame(np.zeros((80, 100, 3), dtype=np.uint8), self.sequence, self.sequence * 100_000_000)
+
+        def __exit__(self, *args):
+            events.append("camera closed")
+
+    class Estimator:
+        model_path = model
+
+        def __enter__(self):
+            return self
+
+        def estimate(self, frame):
+            return PoseObservation(frame.timestamp_ns, 100, 80, {})
+
+        def __exit__(self, *args):
+            events.append("pose closed")
+
+    class Preview:
+        last_key = -1
+        status_text = None
+        keys = iter([ord("v"), ord("i"), ord("u"), ord("q")])
+
+        def __enter__(self):
+            return self
+
+        def show(self, frame, pose):
+            assert "unusable" in self.status_text
+            self.last_key = next(self.keys)
+            return self.last_key != ord("q")
+
+        def __exit__(self, *args):
+            events.append("preview closed")
+
+    monkeypatch.setattr("sys.argv", ["app.py", "--calibrate", "--output", str(tmp_path / "sessions")])
+    monkeypatch.setattr(app, "CameraCapture", lambda index: Camera())
+    monkeypatch.setattr(app, "PoseEstimator", Estimator)
+    monkeypatch.setattr(app, "VideoPreview", Preview)
+    assert app.main() == 0
+    session = next((tmp_path / "sessions").iterdir())
+    samples = pq.read_table(session / "samples").to_pylist()
+    assert [row["posture_label"] for row in samples] == ["unlabeled", "valid", "invalid", "unlabeled"]
+    assert json.loads((session / "session.json").read_text())["complete"]
+    assert events == ["preview closed", "camera closed", "pose closed"]
+
+
+def test_invalid_calibration_config_fails_before_opening_camera(monkeypatch):
+    def invalid_config(path):
+        raise ValueError("unknown feature")
+
+    camera = Mock()
+    monkeypatch.setattr("sys.argv", ["app.py", "--calibrate"])
+    monkeypatch.setattr(app.FeatureConfig, "load", invalid_config)
+    monkeypatch.setattr(app, "CameraCapture", camera)
+    with pytest.raises(SystemExit) as error:
+        app.main()
+    assert error.value.code == 2
+    camera.assert_not_called()
+
+
+def test_preview_normalizes_uppercase_label_and_preserves_source(monkeypatch):
+    from preview import VideoPreview
+
+    frame = Frame(np.zeros((80, 640, 3), dtype=np.uint8), 1, 10)
+    pose = PoseObservation(10, 640, 80, {})
+    displayed = []
+    monkeypatch.setattr("preview.cv2.imshow", lambda name, image: displayed.append(image))
+    monkeypatch.setattr("preview.cv2.waitKey", lambda delay: ord("V"))
+    monkeypatch.setattr("preview.cv2.getWindowProperty", lambda *args: 1)
+    preview = VideoPreview()
+    preview.status_text = "UNLABELED | usable | 1.0s | saved 0/1"
+    assert preview.show(frame, pose)
+    assert preview.last_key == ord("v")
+    assert displayed[0].any()
+    assert not frame.image.any()

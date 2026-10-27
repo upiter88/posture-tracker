@@ -52,10 +52,14 @@ def test_maps_landmarks_and_converts_bgr_without_mutating_frame(backend):
         "right_eye",
         "left_ear",
         "right_ear",
+        "mouth_left",
+        "mouth_right",
         "left_shoulder",
         "right_shoulder",
     }
     assert observation.landmarks["left_shoulder"].x == 0.11
+    assert observation.landmarks["mouth_left"].x == 0.09
+    assert observation.landmarks["mouth_right"].x == 0.10
     assert observation.landmarks["right_shoulder"].x == 0.12
     assert observation.landmarks["nose"].visibility == 0.8
     assert observation.landmarks["nose"].presence == 0.9

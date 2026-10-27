@@ -33,6 +33,8 @@ _LANDMARK_INDICES = {
     "right_shoulder": 12,
 }
 
+LANDMARK_NAMES = tuple(_LANDMARK_INDICES)
+
 
 @dataclass(frozen=True)
 class PoseLandmark:
