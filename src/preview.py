@@ -1,7 +1,8 @@
 """Optional OpenCV window for inspecting captured frames."""
 
-import cv2
 import math
+
+import cv2
 
 from capture import Frame
 from pose import PoseObservation

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Mapping
-import math
 
 import cv2
 import mediapipe as mp
@@ -14,7 +14,6 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 from capture import Frame
-
 
 DEFAULT_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "pose_landmarker_lite.task"
 

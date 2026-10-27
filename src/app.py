@@ -9,7 +9,7 @@ from time import monotonic
 import cv2
 
 from capture import CameraCapture, CaptureError
-from pose import PoseEstimator, PoseError
+from pose import PoseError, PoseEstimator
 from preview import VideoPreview
 from reporting import PoseDiagnostics
 
