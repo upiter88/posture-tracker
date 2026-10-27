@@ -156,7 +156,7 @@ def test_calibration_pipeline_records_preview_labels_and_cleans_up(monkeypatch, 
     class Preview:
         last_key = -1
         status_text = None
-        keys = iter([ord("v"), ord("i"), ord("u"), ord("q")])
+        keys = iter([ord("2"), ord("1"), ord("0"), ord("q")])
 
         def __enter__(self):
             return self
@@ -175,7 +175,7 @@ def test_calibration_pipeline_records_preview_labels_and_cleans_up(monkeypatch, 
     monkeypatch.setattr(app, "VideoPreview", Preview)
     assert app.main() == 0
     session = next((tmp_path / "sessions").iterdir())
-    samples = pq.read_table(session / "samples").to_pylist()
+    samples = pq.read_table(session / "samples.parquet").to_pylist()
     assert [row["posture_label"] for row in samples] == ["unlabeled", "valid", "invalid", "unlabeled"]
     assert json.loads((session / "session.json").read_text())["complete"]
     assert events == ["preview closed", "camera closed", "pose closed"]
@@ -202,11 +202,11 @@ def test_preview_normalizes_uppercase_label_and_preserves_source(monkeypatch):
     pose = PoseObservation(10, 640, 80, {})
     displayed = []
     monkeypatch.setattr("preview.cv2.imshow", lambda name, image: displayed.append(image))
-    monkeypatch.setattr("preview.cv2.waitKey", lambda delay: ord("V"))
+    monkeypatch.setattr("preview.cv2.waitKey", lambda delay: ord("2"))
     monkeypatch.setattr("preview.cv2.getWindowProperty", lambda *args: 1)
     preview = VideoPreview()
     preview.status_text = "UNLABELED | usable | 1.0s | saved 0/1"
     assert preview.show(frame, pose)
-    assert preview.last_key == ord("v")
+    assert preview.last_key == ord("2")
     assert displayed[0].any()
     assert not frame.image.any()

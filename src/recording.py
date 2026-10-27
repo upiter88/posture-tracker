@@ -19,7 +19,7 @@ from features import FEATURE_VERSION, FEATURES, TEMPORAL_FEATURES, FeatureConfig
 from pose import LANDMARK_NAMES, PoseObservation
 
 SCHEMA_VERSION = 1
-LABEL_KEYS = {ord("v"): "valid", ord("i"): "invalid", ord("u"): "unlabeled"}
+LABEL_KEYS = {ord("2"): "valid", ord("1"): "invalid", ord("0"): "unlabeled"}
 
 
 class RecordingError(RuntimeError):
@@ -120,8 +120,8 @@ class CalibrationRecorder:
             # The model hash identifies the exact binary used for this session.
             self._metadata["model_sha256"] = hashlib.sha256(self.model_path.read_bytes()).hexdigest()
             self.path.mkdir(parents=True, exist_ok=False)
-            (self.path / "samples").mkdir()
-            (self.path / "label_events").mkdir()
+            (self.path / "samples.parquet").mkdir()
+            (self.path / "label_events.parquet").mkdir()
             self._write_metadata()
         except OSError as error:
             raise RecordingError(f"Cannot create recording at {self.path}: {error}") from error
@@ -201,11 +201,11 @@ class CalibrationRecorder:
     def flush(self, *, include_pending_events: bool = False) -> None:
         self._require_open()
         try:
-            self._write_part("samples", self._rows, self._schema)
+            self._write_part("samples.parquet", self._rows, self._schema)
             effective = [
                 event for event in self._events if include_pending_events or event["first_frame_sequence"] is not None
             ]
-            self._write_part("label_events", effective, self._event_schema)
+            self._write_part("label_events.parquet", effective, self._event_schema)
             self._events = [event for event in self._events if event not in effective]
         except (OSError, pa.ArrowException) as error:
             raise RecordingError(f"Cannot flush recording at {self.path}: {error}") from error

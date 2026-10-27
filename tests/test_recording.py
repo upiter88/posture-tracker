@@ -32,15 +32,15 @@ def test_labels_apply_to_next_frame_and_raw_failures_are_preserved(recorder):
     extractor = FeatureExtractor()
     with recorder:
         record_frame(recorder, extractor, 1)
-        recorder.set_label(ord("v"), 150_000_000)
-        recorder.set_label(ord("v"), 160_000_000)  # no duplicate segment
+        recorder.set_label(ord("2"), 150_000_000)
+        recorder.set_label(ord("2"), 160_000_000)  # no duplicate segment
         record_frame(recorder, extractor, 2)
         assert recorder.saved_count == 2
-        assert len(list((recorder.path / "samples").glob("*.parquet"))) == 1
-        recorder.set_label(ord("i"), 250_000_000)
+        assert len(list((recorder.path / "samples.parquet").glob("*.parquet"))) == 1
+        recorder.set_label(ord("1"), 250_000_000)
         record_frame(recorder, extractor, 3)
-        recorder.set_label(ord("u"), 350_000_000)  # no following frame
-    rows = pq.read_table(recorder.path / "samples").to_pylist()
+        recorder.set_label(ord("0"), 350_000_000)  # no following frame
+    rows = pq.read_table(recorder.path / "samples.parquet").to_pylist()
     assert [row["posture_label"] for row in rows] == ["unlabeled", "valid", "invalid"]
     assert [row["label_segment_id"] for row in rows] == [0, 1, 2]
     assert [row["elapsed_ns"] for row in rows] == [0, 100_000_000, 200_000_000]
@@ -50,7 +50,7 @@ def test_labels_apply_to_next_frame_and_raw_failures_are_preserved(recorder):
     assert not rows[1]["pose_detected"]
     assert rows[0]["shoulder_width"] is None
     assert not any(row["measurement_valid"] for row in rows)
-    events = pq.read_table(recorder.path / "label_events").to_pylist()
+    events = pq.read_table(recorder.path / "label_events.parquet").to_pylist()
     assert [row["first_frame_sequence"] for row in events] == [2, 3, None]
     metadata = json.loads((recorder.path / "session.json").read_text())
     assert metadata["complete"]
@@ -64,7 +64,7 @@ def test_exception_flushes_tail_and_marks_session_incomplete(recorder):
     with pytest.raises(RuntimeError, match="inference failure"), recorder:
         record_frame(recorder, FeatureExtractor(), 1)
         raise RuntimeError("inference failure")
-    assert pq.read_table(recorder.path / "samples").num_rows == 1
+    assert pq.read_table(recorder.path / "samples.parquet").num_rows == 1
     assert not json.loads((recorder.path / "session.json").read_text())["complete"]
 
 
@@ -79,7 +79,7 @@ def test_write_failure_is_reported_and_previous_part_survives(recorder, monkeypa
 
         monkeypatch.setattr("recording.pq.write_table", fail_write)
         record_frame(recorder, extractor, 3)
-    assert pq.read_table(recorder.path / "samples").num_rows == 2
+    assert pq.read_table(recorder.path / "samples.parquet").num_rows == 2
     assert not json.loads((recorder.path / "session.json").read_text())["complete"]
 
 

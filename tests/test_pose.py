@@ -113,13 +113,13 @@ def test_capture_clock_ties_survive_calibration_pipeline(backend, monkeypatch, t
             pose = estimator.estimate(frame)
             recorder.record(frame, pose, extractor.extract(pose))
             if index == 1:
-                recorder.set_label(ord("v"))
+                recorder.set_label(ord("2"))
 
-    rows = pq.read_table(recorder.path / "samples").to_pylist()
+    rows = pq.read_table(recorder.path / "samples.parquet").to_pylist()
     assert [row["capture_timestamp_ns"] for row in rows] == [1_000_000_000, 1_000_000_001, 1_050_000_000]
     assert [row["posture_label"] for row in rows] == ["unlabeled", "unlabeled", "valid"]
     assert [call.args[1] for call in landmarker.detect_for_video.call_args_list] == [0, 1, 50]
-    events = pq.read_table(recorder.path / "label_events").to_pylist()
+    events = pq.read_table(recorder.path / "label_events.parquet").to_pylist()
     assert events[0]["event_timestamp_ns"] == 1_025_000_000
     assert events[0]["first_frame_sequence"] == 3
 
