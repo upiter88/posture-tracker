@@ -27,7 +27,7 @@ addopts = "--basetemp=.pytest_cache/tmp"
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
 src = ["src"]
 
 [tool.ruff.lint]

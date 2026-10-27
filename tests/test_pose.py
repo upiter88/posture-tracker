@@ -15,20 +15,21 @@ def make_frame(timestamp_ns=1_000_000_000):
 
 
 def result_with_pose():
-    return SimpleNamespace(pose_landmarks=[[
-        SimpleNamespace(x=index / 100, y=0.4, z=-0.1, visibility=0.8, presence=0.9)
-        for index in range(33)
-    ]])
+    return SimpleNamespace(
+        pose_landmarks=[
+            [SimpleNamespace(x=index / 100, y=0.4, z=-0.1, visibility=0.8, presence=0.9) for index in range(33)]
+        ]
+    )
 
 
 @pytest.fixture
 def backend(monkeypatch, tmp_path):
-    model = tmp_path / 'model.task'
+    model = tmp_path / "model.task"
     model.touch()
     landmarker = Mock()
     landmarker.detect_for_video.return_value = result_with_pose()
     factory = Mock(return_value=landmarker)
-    monkeypatch.setattr('pose.PoseLandmarker.create_from_options', factory)
+    monkeypatch.setattr("pose.PoseLandmarker.create_from_options", factory)
     return PoseEstimator(model), landmarker, factory
 
 
@@ -46,13 +47,18 @@ def test_maps_landmarks_and_converts_bgr_without_mutating_frame(backend):
     assert (observation.image_width, observation.image_height) == (30, 20)
     assert observation.detected
     assert set(observation.landmarks) == {
-        'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-        'left_shoulder', 'right_shoulder',
+        "nose",
+        "left_eye",
+        "right_eye",
+        "left_ear",
+        "right_ear",
+        "left_shoulder",
+        "right_shoulder",
     }
-    assert observation.landmarks['left_shoulder'].x == 0.11
-    assert observation.landmarks['right_shoulder'].x == 0.12
-    assert observation.landmarks['nose'].visibility == 0.8
-    assert observation.landmarks['nose'].presence == 0.9
+    assert observation.landmarks["left_shoulder"].x == 0.11
+    assert observation.landmarks["right_shoulder"].x == 0.12
+    assert observation.landmarks["nose"].visibility == 0.8
+    assert observation.landmarks["nose"].presence == 0.9
     assert factory.call_args.args[0].num_poses == 1
     landmarker.close.assert_called_once()
 
@@ -80,12 +86,12 @@ def test_timestamp_rounding_and_reopen(backend):
     assert landmarker.close.call_count == 2
 
 
-@pytest.mark.parametrize('timestamp_ns', [1_000_000_000, 999_999_999])
+@pytest.mark.parametrize("timestamp_ns", [1_000_000_000, 999_999_999])
 def test_rejects_duplicate_or_backwards_capture_time(backend, timestamp_ns):
     estimator, landmarker, _ = backend
     with estimator:
         estimator.estimate(make_frame())
-        with pytest.raises(ValueError, match='strictly increasing'):
+        with pytest.raises(ValueError, match="strictly increasing"):
             estimator.estimate(make_frame(timestamp_ns))
     assert landmarker.detect_for_video.call_count == 1
 
@@ -96,14 +102,14 @@ def test_low_confidence_is_preserved_for_feature_stage(backend):
     with estimator:
         observation = estimator.estimate(make_frame())
     assert observation.detected
-    assert observation.landmarks['left_shoulder'].visibility == 0.01
+    assert observation.landmarks["left_shoulder"].visibility == 0.01
 
 
-@pytest.mark.parametrize('failure', [RuntimeError('backend failed'), ValueError('bad image')])
+@pytest.mark.parametrize("failure", [RuntimeError("backend failed"), ValueError("bad image")])
 def test_inference_error_is_not_a_missing_detection_and_closes_model(backend, failure):
     estimator, landmarker, _ = backend
     landmarker.detect_for_video.side_effect = failure
-    with pytest.raises(PoseError, match='frame 1'):
+    with pytest.raises(PoseError, match="frame 1"):
         with estimator:
             estimator.estimate(make_frame())
     landmarker.close.assert_called_once()
@@ -111,21 +117,21 @@ def test_inference_error_is_not_a_missing_detection_and_closes_model(backend, fa
 
 def test_rejects_nonfinite_model_output(backend):
     estimator, landmarker, _ = backend
-    landmarker.detect_for_video.return_value.pose_landmarks[0][0].x = float('nan')
-    with pytest.raises(PoseError, match='Invalid coordinates'):
+    landmarker.detect_for_video.return_value.pose_landmarks[0][0].x = float("nan")
+    with pytest.raises(PoseError, match="Invalid coordinates"):
         with estimator:
             estimator.estimate(make_frame())
 
 
 def test_missing_model_has_setup_instructions(tmp_path):
-    with pytest.raises(PoseError, match='models/README.md'):
-        PoseEstimator(tmp_path / 'missing.task').open()
+    with pytest.raises(PoseError, match="models/README.md"):
+        PoseEstimator(tmp_path / "missing.task").open()
 
 
 def test_initialization_error_is_actionable(backend):
     estimator, _, factory = backend
-    factory.side_effect = RuntimeError('invalid model')
-    with pytest.raises(PoseError, match='Cannot load pose model'):
+    factory.side_effect = RuntimeError("invalid model")
+    with pytest.raises(PoseError, match="Cannot load pose model"):
         estimator.open()
 
 
@@ -139,8 +145,8 @@ def test_interrupt_closes_model(backend):
 
 def test_lifecycle_guards(backend):
     estimator, _, _ = backend
-    with pytest.raises(RuntimeError, match='Open the pose estimator'):
+    with pytest.raises(RuntimeError, match="Open the pose estimator"):
         estimator.estimate(make_frame())
     with estimator:
-        with pytest.raises(RuntimeError, match='already open'):
+        with pytest.raises(RuntimeError, match="already open"):
             estimator.open()

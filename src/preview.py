@@ -47,30 +47,40 @@ def draw_pose(frame: Frame, pose: PoseObservation) -> NDArray[np.uint8]:
     height, width = image.shape[:2]
     pixels: dict[str, tuple[int, int]] = {}
     for name, point in pose.landmarks.items():
-        if (not all(math.isfinite(value) for value in (point.x, point.y, point.visibility, point.presence))
-                or min(point.visibility, point.presence) < 0.5
-                or not (0 <= point.x < 1 and 0 <= point.y < 1)):
+        if (
+            not all(math.isfinite(value) for value in (point.x, point.y, point.visibility, point.presence))
+            or min(point.visibility, point.presence) < 0.5
+            or not (0 <= point.x < 1 and 0 <= point.y < 1)
+        ):
             continue
         pixels[name] = (int(point.x * width), int(point.y * height))
     for start, end in (
-        ('left_shoulder', 'right_shoulder'),
-        ('left_ear', 'left_eye'), ('left_eye', 'nose'),
-        ('right_ear', 'right_eye'), ('right_eye', 'nose'),
+        ("left_shoulder", "right_shoulder"),
+        ("left_ear", "left_eye"),
+        ("left_eye", "nose"),
+        ("right_ear", "right_eye"),
+        ("right_eye", "nose"),
     ):
         if start in pixels and end in pixels:
             cv2.line(image, pixels[start], pixels[end], (0, 200, 0), 2)
     for name, pixel in pixels.items():
         cv2.circle(image, pixel, 4, (0, 255, 255), -1)
-        cv2.putText(image, name, (pixel[0] + 6, pixel[1] - 6),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+        cv2.putText(
+            image,
+            name,
+            (pixel[0] + 6, pixel[1] - 6),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.4,
+            (0, 255, 255),
+            1,
+        )
     if not pose.detected:
-        cv2.putText(image, 'No pose detected', (12, 28),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        cv2.putText(image, "No pose detected", (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     return image
 
 
 class VideoPreview:
-    WINDOW_NAME = 'Posture Tracker - Camera'
+    WINDOW_NAME = "Posture Tracker - Camera"
 
     def __enter__(self) -> VideoPreview:
         cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_NORMAL)
@@ -80,7 +90,7 @@ class VideoPreview:
         """Display a frame; return False when the user requests shutdown."""
         cv2.imshow(self.WINDOW_NAME, draw_pose(frame, pose))
         key = cv2.waitKey(1) & 0xFF
-        if key in (ord('q'), ord('Q'), 27):
+        if key in (ord("q"), ord("Q"), 27):
             return False
         return cv2.getWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_VISIBLE) >= 1
 

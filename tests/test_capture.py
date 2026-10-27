@@ -11,7 +11,7 @@ from capture import CameraCapture, CaptureError
 @pytest.fixture
 def device(monkeypatch):
     camera_device = Mock()
-    monkeypatch.setattr('capture.cv2.VideoCapture', lambda: camera_device)
+    monkeypatch.setattr("capture.cv2.VideoCapture", lambda: camera_device)
     return camera_device
 
 
@@ -19,7 +19,7 @@ def test_failed_open_releases_device(device):
     device.open.return_value = False
     with pytest.raises(CaptureError):
         with CameraCapture():
-            pytest.fail('Unavailable camera must not enter the context')
+            pytest.fail("Unavailable camera must not enter the context")
     device.release.assert_called_once()
 
 

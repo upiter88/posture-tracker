@@ -32,7 +32,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Estimate webcam poses with an optional live preview.")
     parser.add_argument("--camera", type=camera_index, default=0, help="camera index (default: 0)")
     parser.add_argument("--duration", type=positive_seconds, help="stop after this many seconds of capture")
-    parser.add_argument("--preview", action="store_true", help="show video; quit with Q, Esc, or the window close button")
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="show video; quit with Q, Esc, or the window close button",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -75,7 +79,11 @@ def main() -> int:
         return 1
     finally:
         if started is not None:
-            logging.info("Pipeline ended: %d frames in %.2f seconds; resources closed.", count, monotonic() - started)
+            logging.info(
+                "Pipeline ended: %d frames in %.2f seconds; resources closed.",
+                count,
+                monotonic() - started,
+            )
     return 0
 
 

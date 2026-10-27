@@ -11,10 +11,8 @@ from typing import Protocol, cast
 
 import cv2
 import mediapipe as mp
-from mediapipe.tasks import python
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 from mediapipe.tasks.python.core.base_options import BaseOptions
-from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
 from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarker, PoseLandmarkerOptions
 
