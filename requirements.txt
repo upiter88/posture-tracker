@@ -1,3 +1,4 @@
-opencv-python-headless>=4.11,<5
+opencv-contrib-python>=4.11,<5
 numpy>=1.26,<3
 pytest>=8,<10
+mediapipe>=0.10.30,<0.11
