@@ -11,3 +11,9 @@ repos:
         entry: uv run --locked ruff format
         language: system
         types_or: [python, pyi]
+      - id: uv-check
+        name: uv type check
+        entry: uv check --locked
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false

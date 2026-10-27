@@ -15,7 +15,7 @@ uv run pre-commit install
 
 uv manages `.venv` and the Python version specified in `.python-version`.
 `pyproject.toml` contains runtime dependencies, development tools, pytest settings,
-and Ruff settings. Commit `uv.lock` to keep dependency versions reproducible.
+Ruff settings, and ty settings. Commit `uv.lock` to keep dependency versions reproducible.
 No manual virtual environment activation is needed.
 
 ## Run
@@ -35,10 +35,13 @@ not downloaded by uv or the application.
 uv run pytest
 uv run ruff check .
 uv run ruff format --check .
+uv check --locked
 uv run pre-commit run --all-files
 ```
 
-The pre-commit hooks run Ruff linting with safe fixes, followed by formatting.
+`uv check` runs ty on `src`; tests are excluded from type checking.
+
+The pre-commit hooks run Ruff linting with safe fixes, formatting, and `uv check --locked`.
 They use `uv run --locked` so hooks and manual checks use the same locked Ruff
 version. If a hook edits a file, review and stage the changes before committing
 again. Each developer installs the hooks once after cloning.

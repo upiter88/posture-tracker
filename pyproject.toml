@@ -14,6 +14,7 @@ dev = [
     "pre-commit>=4,<5",
     "pytest>=8,<10",
     "ruff>=0.17.3,<0.18",
+    "ty>=0.0.92",
 ]
 
 [tool.uv]
@@ -32,14 +33,8 @@ src = ["src"]
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
 
-[tool.pyright]
+[tool.ty.src]
 include = ["src"]
-extraPaths = ["src"]
-venvPath = "."
-venv = ".venv"
-typeCheckingMode = "basic"
-reportUnknownParameterType = "error"
-reportUnknownArgumentType = "error"
-reportUnknownVariableType = "error"
-reportUnknownMemberType = "error"
-reportMissingParameterType = "error"
+exclude = ["tests"]
+[tool.ty.environment]
+root = ["src"]

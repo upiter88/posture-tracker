@@ -114,7 +114,7 @@ class PoseEstimator:
                 min_tracking_confidence=0.5,
                 output_segmentation_masks=False,
             )
-            self._landmarker = PoseLandmarker.create_from_options(options) # pyright: ignore[reportUnknownMemberType]
+            self._landmarker = PoseLandmarker.create_from_options(options)
         except (OSError, RuntimeError, ValueError) as error:
             raise PoseError(f"Cannot load pose model {self.model_path}: {error}") from error
         self._origin_ns = None
