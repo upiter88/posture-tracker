@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from time import monotonic_ns
+from time import perf_counter_ns
 from types import TracebackType
 from typing import cast
 
@@ -16,7 +16,8 @@ from numpy.typing import NDArray
 class Frame:
     """BGR uint8 image, one-based sequence, and application read-completion time.
 
-    timestamp_ns uses a monotonic clock, not the camera's exposure time.
+    timestamp_ns uses a high-resolution monotonic clock, not camera exposure time.
+    Clock ties advance by 1 ns to keep timestamps strictly increasing.
     Consumers should treat image as read-only.
     """
 
@@ -38,6 +39,7 @@ class CameraCapture:
         self.camera_index = camera_index
         self._device: cv2.VideoCapture | None = None
         self._sequence = 0
+        self._last_timestamp_ns: int | None = None
 
     def open(self) -> CameraCapture:
         if self._device is not None:
@@ -56,6 +58,7 @@ class CameraCapture:
             raise
         self._device = device
         self._sequence = 0
+        self._last_timestamp_ns = None
         return self
 
     def read(self) -> Frame:
@@ -67,7 +70,12 @@ class CameraCapture:
             raise CaptureError(f"Cannot read from camera {self.camera_index}: {error}") from error
         if not success or image is None or image.size == 0:
             raise CaptureError(f"Camera {self.camera_index} failed to deliver a frame.")
-        timestamp_ns = monotonic_ns()
+        # On Windows/Python 3.12, monotonic_ns uses a coarse tick clock that
+        # can repeat between camera reads. perf_counter_ns is high resolution.
+        timestamp_ns = perf_counter_ns()
+        if self._last_timestamp_ns is not None:
+            timestamp_ns = max(timestamp_ns, self._last_timestamp_ns + 1)
+        self._last_timestamp_ns = timestamp_ns
         self._sequence += 1
         # OpenCV's stub allows other dtypes; webcam BGR frames use uint8.
         return Frame(

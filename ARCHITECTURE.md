@@ -71,6 +71,8 @@ Use OpenCV's `VideoCapture` API through `opencv-contrib-python`, which also sati
 
 Start with the default camera index. Optional width, height, and frame-rate requests can be added only when needed; hardware may not honor them. Keep the interface small and avoid backend selection logic until an observed device issue requires it.
 
+Capture timestamps use `time.perf_counter_ns()`, a high-resolution monotonic clock. Python 3.12's `monotonic_ns()` uses a coarse Windows tick clock that can repeat between reads. Capture advances tied readings by 1 ns to guarantee strict ordering and resets this state on reopen. Label events use the same performance clock to stay aligned with frames.
+
 The command-line runner captures frames and estimates poses by default. The optional `--preview` flag displays each frame with selected landmarks through `src/preview.py`; the default remains console-only. `app` passes `Frame` and `PoseObservation` values directly to the preview and stops when it returns False (Q, Esc, or window close). `app` owns the model, camera, and optional preview through an exit stack. Distinguish an unavailable camera from a failure while reading an already opened camera, report a clear error, and exit cleanly. Do not add automatic reconnection initially.
 
 ### Pose estimation

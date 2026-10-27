@@ -7,7 +7,7 @@ import json
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from time import monotonic_ns
+from time import perf_counter_ns
 from types import TracebackType
 from uuid import uuid4
 
@@ -141,7 +141,8 @@ class CalibrationRecorder:
                 "session_id": self.session_id,
                 "label_segment_id": self.segment_id,
                 "posture_label": label,
-                "event_timestamp_ns": monotonic_ns() if timestamp_ns is None else timestamp_ns,
+                # Use the same clock as CameraCapture so events align with frames.
+                "event_timestamp_ns": perf_counter_ns() if timestamp_ns is None else timestamp_ns,
                 "first_frame_sequence": None,
             }
         )

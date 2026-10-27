@@ -76,6 +76,9 @@ to recompute different features offline. `session.json` stores schema/feature
 versions, effective settings, feature definitions/units, model path and SHA-256,
 UTC start/end times, counts, and completion status. Monotonic timestamps are for
 within-session timing; do not compare their absolute values across sessions.
+Frames and label events use the same high-resolution monotonic performance clock.
+If consecutive frame clock readings tie, capture advances the timestamp by 1 ns
+to preserve strict ordering through pose, features, and recording.
 
 Label-event parts store each change's monotonic input timestamp and first affected
 frame sequence. A change with no following frame has a null sequence. Empty

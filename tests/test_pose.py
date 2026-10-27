@@ -90,6 +90,40 @@ def test_timestamp_rounding_and_reopen(backend):
     assert landmarker.close.call_count == 2
 
 
+def test_capture_clock_ties_survive_calibration_pipeline(backend, monkeypatch, tmp_path):
+    import pyarrow.parquet as pq
+
+    from capture import CameraCapture
+    from features import FeatureConfig, FeatureExtractor
+    from recording import CalibrationRecorder
+
+    estimator, landmarker, _ = backend
+    device = Mock()
+    device.read.return_value = (True, make_frame().image)
+    monkeypatch.setattr("capture.cv2.VideoCapture", lambda: device)
+    times = iter([1_000_000_000, 1_000_000_000, 1_050_000_000])
+    monkeypatch.setattr("capture.perf_counter_ns", lambda: next(times))
+    monkeypatch.setattr("recording.perf_counter_ns", lambda: 1_025_000_000)
+    config = FeatureConfig()
+    extractor = FeatureExtractor(config)
+    recorder = CalibrationRecorder(tmp_path / "sessions", config, 0, estimator.model_path)
+    with estimator, CameraCapture() as camera, recorder:
+        for index in range(3):
+            frame = camera.read()
+            pose = estimator.estimate(frame)
+            recorder.record(frame, pose, extractor.extract(pose))
+            if index == 1:
+                recorder.set_label(ord("v"))
+
+    rows = pq.read_table(recorder.path / "samples").to_pylist()
+    assert [row["capture_timestamp_ns"] for row in rows] == [1_000_000_000, 1_000_000_001, 1_050_000_000]
+    assert [row["posture_label"] for row in rows] == ["unlabeled", "unlabeled", "valid"]
+    assert [call.args[1] for call in landmarker.detect_for_video.call_args_list] == [0, 1, 50]
+    events = pq.read_table(recorder.path / "label_events").to_pylist()
+    assert events[0]["event_timestamp_ns"] == 1_025_000_000
+    assert events[0]["first_frame_sequence"] == 3
+
+
 @pytest.mark.parametrize("timestamp_ns", [1_000_000_000, 999_999_999])
 def test_rejects_duplicate_or_backwards_capture_time(backend, timestamp_ns):
     estimator, landmarker, _ = backend
