@@ -31,3 +31,15 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["src"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+reportUnknownParameterType = "error"
+reportUnknownArgumentType = "error"
+reportUnknownVariableType = "error"
+reportUnknownMemberType = "error"
+reportMissingParameterType = "error"

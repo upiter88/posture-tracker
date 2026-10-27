@@ -28,7 +28,7 @@ def backend(monkeypatch, tmp_path):
     landmarker = Mock()
     landmarker.detect_for_video.return_value = result_with_pose()
     factory = Mock(return_value=landmarker)
-    monkeypatch.setattr('pose.vision.PoseLandmarker.create_from_options', factory)
+    monkeypatch.setattr('pose.PoseLandmarker.create_from_options', factory)
     return PoseEstimator(model), landmarker, factory
 
 

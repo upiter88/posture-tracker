@@ -1,18 +1,51 @@
 """Optional OpenCV window for inspecting captured frames."""
 
+from __future__ import annotations
+
 import math
+from types import TracebackType
 
 import cv2
+import numpy as np
+from numpy.typing import NDArray
 
 from capture import Frame
 from pose import PoseObservation
 
 
-def draw_pose(frame: Frame, pose: PoseObservation):
-    """Render confident, in-frame landmarks without changing the source image."""
+def draw_pose(frame: Frame, pose: PoseObservation) -> NDArray[np.uint8]:
+    """Draw labeled pose landmarks and connections on a copy of the frame.
+
+    Args:
+        frame: Captured frame whose BGR image supplies the preview dimensions.
+            The source image is not modified.
+        pose: Pose observation containing named landmarks with normalized image
+            coordinates, visibility, and presence scores.
+
+    Returns:
+        A uint8 BGR image with the same shape as the source, containing the
+        preview overlays. No window is opened by this function.
+
+    Landmarks are drawn only when x, y, visibility, and presence are finite,
+    both confidence scores are at least 0.5, and 0 <= x < 1 and 0 <= y < 1.
+    Normalized coordinates are multiplied by the frame's width and height,
+    then truncated to integer pixel positions. Each accepted landmark gets a
+    filled yellow circle of radius 4 pixels and its name as a yellow label.
+
+    Connections are configured explicitly by the landmark-name pairs in the
+    loop below: shoulder to shoulder, and each ear through its eye to the nose.
+    Edit those pairs to change the lines; they are not MediaPipe's full pose
+    skeleton. A connection is drawn only when both endpoints pass the filter.
+    Lines are green (BGR 0, 200, 0) and 2 pixels thick. This display filter does
+    not determine posture validity.
+
+    An observation with no detected pose displays a red "No pose detected"
+    message. A detected pose whose landmarks all fail the display filter
+    leaves the copied image without overlays.
+    """
     image = frame.image.copy()
     height, width = image.shape[:2]
-    pixels = {}
+    pixels: dict[str, tuple[int, int]] = {}
     for name, point in pose.landmarks.items():
         if (not all(math.isfinite(value) for value in (point.x, point.y, point.visibility, point.presence))
                 or min(point.visibility, point.presence) < 0.5
@@ -39,7 +72,7 @@ def draw_pose(frame: Frame, pose: PoseObservation):
 class VideoPreview:
     WINDOW_NAME = 'Posture Tracker - Camera'
 
-    def __enter__(self):
+    def __enter__(self) -> VideoPreview:
         cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_NORMAL)
         return self
 
@@ -51,7 +84,12 @@ class VideoPreview:
             return False
         return cv2.getWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_VISIBLE) >= 1
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         # The user may already have closed the window using its title-bar button.
         try:
             cv2.destroyWindow(self.WINDOW_NAME)

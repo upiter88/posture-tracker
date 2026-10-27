@@ -37,7 +37,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     count = 0
-    started = None
+    started: float | None = None
     try:
         logging.info("Opening camera %d; press Ctrl+C to stop.", args.camera)
         with ExitStack() as stack:

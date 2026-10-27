@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import monotonic_ns
+from types import TracebackType
+from typing import cast
 
 import cv2
 import numpy as np
@@ -34,7 +36,7 @@ class CameraCapture:
         if camera_index < 0:
             raise ValueError("Camera index must be non-negative.")
         self.camera_index = camera_index
-        self._device = None
+        self._device: cv2.VideoCapture | None = None
         self._sequence = 0
 
     def open(self) -> CameraCapture:
@@ -67,7 +69,12 @@ class CameraCapture:
             raise CaptureError(f"Camera {self.camera_index} failed to deliver a frame.")
         timestamp_ns = monotonic_ns()
         self._sequence += 1
-        return Frame(image=image, sequence=self._sequence, timestamp_ns=timestamp_ns)
+        # OpenCV's stub allows other dtypes; webcam BGR frames use uint8.
+        return Frame(
+            image=cast(NDArray[np.uint8], image),
+            sequence=self._sequence,
+            timestamp_ns=timestamp_ns,
+        )
 
     def close(self) -> None:
         if self._device is not None:
@@ -78,5 +85,10 @@ class CameraCapture:
     def __enter__(self) -> CameraCapture:
         return self.open()
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()

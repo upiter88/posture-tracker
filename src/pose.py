@@ -6,12 +6,17 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, TracebackType
+from typing import Protocol, cast
 
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
+from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
+from mediapipe.tasks.python.core.base_options import BaseOptions
 from mediapipe.tasks.python import vision
+from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
+from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarker, PoseLandmarkerOptions
 
 from capture import Frame
 
@@ -24,6 +29,8 @@ _LANDMARK_INDICES = {
     "right_eye": 5,
     "left_ear": 7,
     "right_ear": 8,
+    "mouth_left": 9,
+    "mouth_right": 10,
     "left_shoulder": 11,
     "right_shoulder": 12,
 }
@@ -69,14 +76,24 @@ class PoseError(RuntimeError):
     """The model could not be loaded or pose inference failed."""
 
 
+class _PoseResult(Protocol):
+    pose_landmarks: list[list[NormalizedLandmark]]
+
+
+def _finite_coordinate(value: float | None, name: str) -> float:
+    if value is None or not math.isfinite(value):
+        raise ValueError(f"Invalid coordinates or confidence for {name}.")
+    return value
+
+
 class PoseEstimator:
     """Own a single-person landmarker, tracking sequential frames in VIDEO mode."""
 
     def __init__(self, model_path: str | Path = DEFAULT_MODEL_PATH) -> None:
         self.model_path = Path(model_path)
-        self._landmarker = None
-        self._origin_ns = None
-        self._last_timestamp_ns = None
+        self._landmarker: PoseLandmarker | None = None
+        self._origin_ns: int | None = None
+        self._last_timestamp_ns: int | None = None
         self._last_timestamp_ms = -1
 
     def open(self) -> PoseEstimator:
@@ -88,16 +105,16 @@ class PoseEstimator:
                 "Download the Lite model using the instructions in models/README.md."
             )
         try:
-            options = vision.PoseLandmarkerOptions(
-                base_options=python.BaseOptions(model_asset_path=str(self.model_path)),
-                running_mode=vision.RunningMode.VIDEO,
+            options = PoseLandmarkerOptions(
+                base_options=BaseOptions(model_asset_path=str(self.model_path)),
+                running_mode=VisionTaskRunningMode.VIDEO,
                 num_poses=1,
                 min_pose_detection_confidence=0.5,
                 min_pose_presence_confidence=0.5,
                 min_tracking_confidence=0.5,
                 output_segmentation_masks=False,
             )
-            self._landmarker = vision.PoseLandmarker.create_from_options(options)
+            self._landmarker = PoseLandmarker.create_from_options(options) # pyright: ignore[reportUnknownMemberType]
         except (OSError, RuntimeError, ValueError) as error:
             raise PoseError(f"Cannot load pose model {self.model_path}: {error}") from error
         self._origin_ns = None
@@ -121,15 +138,16 @@ class PoseEstimator:
         try:
             rgb = cv2.cvtColor(frame.image, cv2.COLOR_BGR2RGB)
             image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-            result = self._landmarker.detect_for_video(image, timestamp_ms)
-            landmarks = {}
+            result = cast(_PoseResult, self._landmarker.detect_for_video(image, timestamp_ms))
+            landmarks: dict[str, PoseLandmark] = {}
             if result.pose_landmarks:
                 points = result.pose_landmarks[0]
                 for name, index in _LANDMARK_INDICES.items():
                     point = points[index]
-                    values = (point.x, point.y, point.z, point.visibility, point.presence)
-                    if not all(value is not None and math.isfinite(value) for value in values):
-                        raise ValueError(f"Invalid coordinates or confidence for {name}.")
+                    values = tuple(
+                        _finite_coordinate(value, name)
+                        for value in (point.x, point.y, point.z, point.visibility, point.presence)
+                    )
                     if not all(0 <= value <= 1 for value in values[3:]):
                         raise ValueError(f"Invalid confidence for {name}.")
                     landmarks[name] = PoseLandmark(*values)
@@ -152,5 +170,10 @@ class PoseEstimator:
     def __enter__(self) -> PoseEstimator:
         return self.open()
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
