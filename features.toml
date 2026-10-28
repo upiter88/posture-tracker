@@ -1,0 +1,19 @@
+# Calibration mode automatically loads this project-level configuration.
+# All settings are optional. Omit enabled to calculate all registered features.
+[features]
+enabled = [
+    "shoulder_angle_deg",
+    "head_offset_x",
+    "head_offset_y",
+    "mouth_shoulder_vertical",
+    "eye_ear_vertical",
+    "shoulder_width",
+    "facial_asymmetry",
+]
+min_visibility = 0.5
+min_presence = 0.5
+min_shoulder_width_px = 5.0
+head_reference = "eyes_midpoint" # or "nose"; affects head_offset_x/y only
+temporal_enabled = true # adds __std and __velocity to each enabled feature
+window_seconds = 1.0
+max_gap_seconds = 0.5 # reset a feature's motion history after a larger gap

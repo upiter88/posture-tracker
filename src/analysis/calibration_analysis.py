@@ -30,7 +30,7 @@ import pyarrow.parquet as pq
 SESSION_ID: str | None = "20261027T213729-54efcdb3"
 TRIM_SECONDS = 1.0
 TRIM_SENSITIVITY_SECONDS = (0.0, 1.0, 2.0, 3.0)
-SHOW_PLOTS = False  # Set True for interactive notebook use.
+SHOW_PLOTS = True  # Set True for interactive notebook use.
 
 
 def find_project_root() -> Path:
