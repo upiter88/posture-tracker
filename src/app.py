@@ -9,13 +9,13 @@ from time import monotonic
 
 import cv2
 
-from calibration_profile import DEFAULT_PROFILE_PATH
-from capture import CameraCapture, CaptureError
-from features import FeatureConfig, FeatureExtractor
-from pose import PoseError, PoseLandmarksTracker
-from preview import VideoPreview
-from recording import CalibrationRecorder, RecordingError
-from reporting import PoseDiagnostics
+from calibration.calibration_profile import DEFAULT_PROFILE_PATH
+from calibration.recording import CalibrationRecorder, RecordingError
+from capture.capture import CameraCapture, CaptureError
+from capture.pose import PoseError, PoseLandmarksTracker
+from posture.features import FeatureConfig, FeatureExtractor
+from presentation.preview import VideoPreview
+from presentation.reporting import PoseDiagnostics
 
 
 def camera_index(value: str) -> int:
@@ -53,13 +53,13 @@ def main() -> int:
     if args.track and args.calibrate:
         parser.error("--track and --calibrate are separate modes")
     if args.track:
-        from live_tracking import run_live
+        from tracking.live_tracking import run_live
 
         logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
         return run_live(args.profile, args.camera, args.duration)
     try:
         feature_config = (
-            FeatureConfig.load(Path(__file__).resolve().parent.parent / "features.toml")
+            FeatureConfig.load(Path(__file__).resolve().parent.parent / "config/features.toml")
             if args.calibrate
             else FeatureConfig()
         )

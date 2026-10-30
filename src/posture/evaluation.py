@@ -6,9 +6,9 @@ import math
 from dataclasses import dataclass
 from typing import Literal
 
-from calibration_profile import CalibrationProfile, FeatureRule
-from features import PostureFeatures
-from smoothing import SignalSmoother, SmoothingSettings
+from calibration.calibration_profile import CalibrationProfile, FeatureRule
+from posture.features import PostureFeatures
+from posture.smoothing import SignalSmoother, SmoothingSettings
 
 PostureStatus = Literal["WITHIN_REFERENCE", "DEVIATION", "UNKNOWN"]
 

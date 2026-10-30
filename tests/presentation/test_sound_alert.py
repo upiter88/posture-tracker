@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import sound_alert
-from evaluation import PostureResult
-from sound_alert import PostureSoundAlert, write_tone
-from tracking_config import DEFAULT_SETTINGS_PATH, SoundSettings, TrackingSettings
+from posture.evaluation import PostureResult
+from presentation import sound_alert
+from presentation.sound_alert import PostureSoundAlert, write_tone
+from tracking.tracking_config import DEFAULT_SETTINGS_PATH, SoundSettings, TrackingSettings
 
 
 def result(seconds, status="DEVIATION"):

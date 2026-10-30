@@ -8,14 +8,14 @@ from time import monotonic
 
 import cv2
 
-from calibration_profile import CalibrationProfile, CaptureIdentity, ProfileError
-from capture import CameraCapture, CaptureError
-from evaluation import PostureEvaluator
-from features import FeatureExtractor
-from live_preview import LivePreview
-from pose import PoseError, PoseLandmarksTracker
-from sound_alert import PostureSoundAlert
-from tracking_config import TrackingSettings
+from calibration.calibration_profile import CalibrationProfile, CaptureIdentity, ProfileError
+from capture.capture import CameraCapture, CaptureError
+from capture.pose import PoseError, PoseLandmarksTracker
+from posture.evaluation import PostureEvaluator
+from posture.features import FeatureExtractor
+from presentation.live_preview import LivePreview
+from presentation.sound_alert import PostureSoundAlert
+from tracking.tracking_config import TrackingSettings
 
 FILTER_KEYS = {ord("1"): "none", ord("2"): "ema", ord("3"): "moving_average"}
 

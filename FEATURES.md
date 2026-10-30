@@ -1,10 +1,10 @@
 # Feature reference
 
-Generated from the definitions beside each calculation in `src/features.py`.
+Generated from the definitions beside each calculation in `src/posture/features.py`.
 
 Coordinates use pixels: P=(x*image_width, y*image_height). Image x increases rightward; y increases downward. Left/right landmark names are anatomical. S is the shoulder midpoint; W is Euclidean shoulder width in pixels. Model-relative z is saved but not used by these features.
 
-Edit `features.toml` to enable features, choose the head reference, change confidence limits, or adjust the motion window. Calibration mode loads this file automatically. Each required point must be finite, in-frame, and meet both confidence thresholds. Distances divided by W require W >= min_shoulder_width_px. An unavailable feature is null with a reason; raw landmarks are preserved. measurement_valid means all enabled base features are usable; it does not judge posture or require temporal warmup to finish.
+Edit `config/features.toml` to enable features, choose the head reference, change confidence limits, or adjust the motion window. Calibration mode loads this file automatically. Each required point must be finite, in-frame, and meet both confidence thresholds. Distances divided by W require W >= min_shoulder_width_px. An unavailable feature is null with a reason; raw landmarks are preserved. measurement_valid means all enabled base features are usable; it does not judge posture or require temporal warmup to finish.
 
 ## shoulder_angle_deg
 
@@ -126,4 +126,4 @@ inside the window. No assumed FPS or interpolation across tracking gaps.
 
 ## Adding a feature
 
-Add a named function decorated with @feature next to its docstring containing the formal definition, description, signs, units, and limitations. Declare required landmarks in the decorator and use geometry helpers for validation. The registry, output schema, and session metadata discover it automatically. Add its name to features.toml if enabled is explicitly listed. Increment FEATURE_VERSION when definitions change, and test known geometry. Regenerate this document with the command in README.md.
+Add a named function decorated with @feature next to its docstring containing the formal definition, description, signs, units, and limitations. Declare required landmarks in the decorator and use geometry helpers for validation. The registry, output schema, and session metadata discover it automatically. Add its name to config/features.toml if enabled is explicitly listed. Increment FEATURE_VERSION when definitions change, and test known geometry. Regenerate this document with the command in README.md.

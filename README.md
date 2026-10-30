@@ -3,6 +3,22 @@
 A local webcam application with an explicit capture → pose → diagnostics → optional
 preview pipeline. See [ARCHITECTURE.md](ARCHITECTURE.md) for the module design.
 
+The source modules are grouped by responsibility, with matching test subfolders:
+
+| Source directory | Responsibility | Tests |
+| --- | --- | --- |
+| `src/capture/` | Webcam capture and pose estimation | `tests/capture/` |
+| `src/posture/` | Features, smoothing, and posture evaluation | `tests/posture/` |
+| `src/calibration/` | Recording, profiles, fitting, and replay | `tests/calibration/` |
+| `src/tracking/` | Live orchestration and tracking settings | `tests/tracking/` |
+| `src/presentation/` | Previews, diagnostics, and sound alerts | `tests/presentation/` |
+| `src/analysis/` | Calibration analysis notebook | |
+
+`src/app.py` and `src/fit_profile.py` remain the command-line entry points;
+`tests/test_pipeline.py` covers the application pipeline. Application configuration
+lives in `config/`. Tool-discovered project files such as `pyproject.toml`,
+`.pre-commit-config.yaml`, and `.python-version` stay at the project root.
+
 ## Development setup
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run from
@@ -37,7 +53,7 @@ uv run src/app.py --calibrate --duration 60 --output data/calibration
 ```
 
 Calibration mode automatically opens the preview and loads the project-level
-[`features.toml`](features.toml). Edit that file to select features, change confidence
+[`config/features.toml`](config/features.toml). Edit that file to select features, change confidence
 thresholds, choose nose/eye midpoint as the head reference, or adjust temporal
 settings. Invalid settings fail before opening the camera. Ordinary capture and
 preview modes do not create recordings.
@@ -105,11 +121,11 @@ samples = pq.read_table(sorted((session / "samples").glob("*.parquet")))
 
 See [`FEATURES.md`](FEATURES.md) for formulas, signs, units, limitations, temporal
 behavior, and instructions for adding features. Each definition also lives beside
-its named calculation in `src/features.py`; the registry derives feature names
+its named calculation in `src/posture/features.py`; the registry derives feature names
 from those functions. Regenerate the reference after changing a definition:
 
 ```powershell
-uv run python -c "import sys; sys.path.insert(0, 'src'); from pathlib import Path; from features import feature_reference_markdown; Path('FEATURES.md').write_text(feature_reference_markdown(), encoding='utf-8')"
+uv run python -c "import sys; sys.path.insert(0, 'src'); from pathlib import Path; from posture.features import feature_reference_markdown; Path('FEATURES.md').write_text(feature_reference_markdown(), encoding='utf-8')"
 ```
 
 This stage collects labeled calibration data and features. Reference fitting,
@@ -162,7 +178,7 @@ It also saves its conclusions and records the limitations of single-session data
 
 ## Calibration profiles (step 1)
 
-[`src/calibration_profile.py`](src/calibration_profile.py) defines a versioned
+[`src/calibration/calibration_profile.py`](src/calibration/calibration_profile.py) defines a versioned
 personal profile with complete extraction settings, independently selected active
 rules, reference statistics, thresholds, timing, capture identity, and recording
 provenance. It validates profiles and saves/loads them atomically as JSON.
@@ -173,7 +189,7 @@ dataclasses. [`examples/calibration_profile.json`](examples/calibration_profile.
 is a synthetic, explicitly unfitted format example.
 
 Profiles preserve their own extraction settings instead of rereading
-`features.toml`. Diagnostic features can remain enabled without blocking an active
+`config/features.toml`. Diagnostic features can remain enabled without blocking an active
 rule when their measurements are missing. Automatic fitting, replay evaluation, and live tracking are implemented as
 separate modules; see [LIVE_TRACKING.md](LIVE_TRACKING.md).
 
@@ -189,7 +205,7 @@ uv run src/app.py --track
 
 The current workspace already has a fitted profile from the latest recording.
 Use **1** for raw signals, **2** for EMA, **3** for moving average, and **Q/Esc** to
-quit. Edit [`tracking.toml`](tracking.toml) to select active fitting rules, displayed
+quit. Edit [`config/tracking.toml`](config/tracking.toml) to select active fitting rules, displayed
 features, smoothing, persistence, plot history, and posture alert volume. On Windows,
 invalid posture triggers a short repeating sound; configure `[sound]` to adjust
 volume (`0.0`–`1.0`), repeat interval, or disable it. Profile references/thresholds
@@ -199,5 +215,5 @@ describes fitting, validation, replay, configuration precedence, and the module 
 To evaluate another saved recording with the same live evaluator:
 
 ```powershell
-uv run src/replay.py --session data/calibration/<session-id>
+uv run src/calibration/replay.py --session data/calibration/<session-id>
 ```

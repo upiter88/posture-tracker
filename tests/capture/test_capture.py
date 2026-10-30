@@ -5,13 +5,13 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from capture import CameraCapture, CaptureError
+from capture.capture import CameraCapture, CaptureError
 
 
 @pytest.fixture
 def device(monkeypatch):
     camera_device = Mock()
-    monkeypatch.setattr("capture.cv2.VideoCapture", lambda: camera_device)
+    monkeypatch.setattr("capture.capture.cv2.VideoCapture", lambda: camera_device)
     return camera_device
 
 
@@ -57,7 +57,7 @@ def test_frame_metadata_and_reopen(device):
 def test_clock_ties_advance_by_one_nanosecond_and_reopen_resets(device, monkeypatch):
     device.read.return_value = (True, np.zeros((2, 3, 3), dtype=np.uint8))
     times = iter([1_000_000_000, 1_000_000_000, 1_000_000_100, 1_050_000_000, 100])
-    monkeypatch.setattr("capture.perf_counter_ns", lambda: next(times))
+    monkeypatch.setattr("capture.capture.perf_counter_ns", lambda: next(times))
     camera = CameraCapture()
     with camera:
         assert [camera.read().timestamp_ns for _ in range(4)] == [

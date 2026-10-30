@@ -5,11 +5,11 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from calibration import FitSettings, RuleSpec
-from calibration_profile import EvaluationSettings
-from smoothing import SmoothingSettings
+from calibration.calibration import FitSettings, RuleSpec
+from calibration.calibration_profile import EvaluationSettings
+from posture.smoothing import SmoothingSettings
 
-DEFAULT_SETTINGS_PATH = Path(__file__).resolve().parent.parent / "tracking.toml"
+DEFAULT_SETTINGS_PATH = Path(__file__).resolve().parents[2] / "config/tracking.toml"
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,9 @@ class TrackingSettings:
         with path.open("rb") as source:
             data = tomllib.load(source)
         if set(data) - {"sound"} != {"rules", "fitting", "smoothing", "evaluation", "display"}:
-            raise ValueError("tracking.toml requires rules, fitting, smoothing, evaluation, and display sections")
+            raise ValueError(
+                "config/tracking.toml requires rules, fitting, smoothing, evaluation, and display sections"
+            )
         smoothing = SmoothingSettings(**data["smoothing"])
         evaluation = EvaluationSettings(smoothing_seconds=smoothing.seconds, **data["evaluation"])
         display = dict(data["display"])

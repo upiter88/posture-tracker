@@ -9,8 +9,8 @@ import wave
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from evaluation import PostureResult
-from tracking_config import SoundSettings
+from posture.evaluation import PostureResult
+from tracking.tracking_config import SoundSettings
 
 
 def write_tone(path: Path, volume: float) -> None:

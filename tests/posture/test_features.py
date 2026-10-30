@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from features import FEATURES, FeatureConfig, FeatureExtractor, feature_reference_markdown
-from pose import PoseLandmark, PoseObservation
+from capture.pose import PoseLandmark, PoseObservation
+from posture.features import FEATURES, FeatureConfig, FeatureExtractor, feature_reference_markdown
 
 
 def observation(timestamp_ns=0, *, points=None, scale=1.0, shift=(0, 0)):
@@ -147,8 +147,8 @@ def test_invalid_configuration_is_rejected(settings):
 
 
 def test_project_config_and_generated_documentation_are_current():
-    root = Path(__file__).resolve().parents[1]
-    config = FeatureConfig.load(root / "features.toml")
+    root = Path(__file__).resolve().parents[2]
+    config = FeatureConfig.load(root / "config/features.toml")
     assert config.enabled == tuple(FEATURES)
     assert (root / "FEATURES.md").read_text(encoding="utf-8") == feature_reference_markdown()
     for name, definition in FEATURES.items():

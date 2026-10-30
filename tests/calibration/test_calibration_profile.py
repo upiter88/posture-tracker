@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from calibration_profile import (
+from calibration.calibration_profile import (
     CalibrationProfile,
     CaptureIdentity,
     EvaluationSettings,
@@ -15,8 +15,8 @@ from calibration_profile import (
     FeatureRule,
     ProfileError,
 )
-from features import FEATURES, FeatureConfig, FeatureExtractor, PostureFeatures, feature
-from pose import PoseLandmark, PoseObservation
+from capture.pose import PoseLandmark, PoseObservation
+from posture.features import FEATURES, FeatureConfig, FeatureExtractor, PostureFeatures, feature
 
 
 @pytest.fixture
@@ -91,7 +91,7 @@ def test_select_remove_and_combine_features_without_parallel_feature_lists(profi
 
 def test_new_registered_feature_needs_no_profile_code_change(profile, monkeypatch):
     # Register a real new output temporarily; restore the registry after the test.
-    monkeypatch.setattr("features.FEATURES", dict(FEATURES))
+    monkeypatch.setattr("posture.features.FEATURES", dict(FEATURES))
 
     @feature(units="image widths", landmarks=("nose",))
     def test_nose_x(geometry):
@@ -197,7 +197,9 @@ def test_model_and_resolution_compatibility(profile):
             profile.check_compatibility(capture)
 
 
-@pytest.mark.parametrize("target", ["calibration_profile.Path.replace", "calibration_profile.os.fsync"])
+@pytest.mark.parametrize(
+    "target", ["calibration.calibration_profile.Path.replace", "calibration.calibration_profile.os.fsync"]
+)
 def test_atomic_failed_publish_preserves_previous_profile(profile, tmp_path, target):
     path = tmp_path / "current.json"
     profile.save(path)
@@ -230,7 +232,7 @@ def test_missing_file_and_invalid_temporal_settings(profile, tmp_path):
 
 
 def test_documented_synthetic_example_is_current():
-    path = Path(__file__).resolve().parents[1] / "examples/calibration_profile.json"
+    path = Path(__file__).resolve().parents[2] / "examples/calibration_profile.json"
     example = CalibrationProfile.load(path)
     assert example.method == "illustrative-not-fitted"
     assert example.required_features == ("head_offset_y",)

@@ -1,6 +1,6 @@
 # Calibration profiles
 
-`src/calibration_profile.py` stores personal calibration data independently of
+`src/calibration/calibration_profile.py` stores personal calibration data independently of
 feature extraction, fitting, and live evaluation. `features.py` stays unchanged.
 
 ## The simple model
@@ -46,10 +46,10 @@ and array structure; for a complete file, start from the saved example.
 | Extracted features, quality checks, temporal-feature calculation | Profile `extraction` |
 | Active rules, personal references, thresholds, rule combination | Profile `rules` and `combination` |
 | Expected camera, resolution, and model | Profile `capture` |
-| Smoothing duration | `tracking.toml` `[smoothing].seconds`, overriding profile `evaluation.smoothing_seconds` |
-| Entry and clearing durations | `tracking.toml` `[evaluation].enter_seconds` / `clear_seconds`, overriding the matching profile fields |
-| Smoothing method and live gap reset | `tracking.toml` `[smoothing].method` / `max_gap_seconds`; live keys 1/2/3 can change method for that run |
-| Displayed signals and plot history | `tracking.toml` `[display]` |
+| Smoothing duration | `config/tracking.toml` `[smoothing].seconds`, overriding profile `evaluation.smoothing_seconds` |
+| Entry and clearing durations | `config/tracking.toml` `[evaluation].enter_seconds` / `clear_seconds`, overriding the matching profile fields |
+| Smoothing method and live gap reset | `config/tracking.toml` `[smoothing].method` / `max_gap_seconds`; live keys 1/2/3 can change method for that run |
+| Displayed signals and plot history | `config/tracking.toml` `[display]` |
 
 `CalibrationProfile.load()` itself applies no overrides and reads no TOML.
 The live/replay entry points explicitly replace the three evaluation timing values
@@ -57,13 +57,13 @@ in memory; the JSON on disk is unchanged. When constructing `PostureEvaluator`
 directly in Python, its supplied profile controls those durations; its `method`
 and `max_gap_seconds` arguments default to `"ema"` and `0.5`.
 Consequently, editing only `evaluation` in JSON will **not** change the timing
-used by the standard live/replay commands. Edit `tracking.toml` for those runs.
+used by the standard live/replay commands. Edit `config/tracking.toml` for those runs.
 
 ### Top-level fields
 
 | JSON field | Type / allowed values | Meaning and effect |
 |---|---|---|
-| `extraction` | Object; all fields below required | Snapshot of feature extraction settings. It replaces any need to read `features.toml` when using the profile. |
+| `extraction` | Object; all fields below required | Snapshot of feature extraction settings. It replaces any need to read `config/features.toml` when using the profile. |
 | `rules` | Nonempty array of rule objects | Active posture rules. Extracted outputs absent from these rules remain diagnostics. |
 | `evaluation` | Object with three durations | Stored smoothing/persistence policy. Subject to the live/replay overrides above. |
 | `capture` | Object with four identity fields | Expected capture/model setup; checked before live use and replay. These are compatibility constraints, not device/model selection commands. |
@@ -89,7 +89,7 @@ changing extraction settings rather than reusing old references blindly.
 | `extraction.min_shoulder_width_px` | Number strictly greater than `0`; pixels | `5.0` | Minimum usable Euclidean shoulder width in aspect-correct pixel coordinates. Rejects unreliable shoulder scale before dividing distances by it. It is not a minimum acceptable body width. |
 | `extraction.head_reference` | `"eyes_midpoint"` or `"nose"` | `"eyes_midpoint"` | Point used by `head_offset_x` and `head_offset_y`: average of both eyes, or nose. Other features keep their own definitions. Switching this requires new references/thresholds for the affected rules. |
 | `extraction.window_seconds` | Number strictly greater than `0`; seconds | `1.0` | Trailing history window for derived variation/velocity outputs. Larger windows cover more recent samples for variation; velocity still uses only the latest two samples inside the window. Has no temporal-extraction effect when `temporal_enabled` is false. |
-| `extraction.max_gap_seconds` | Number strictly greater than `0`; seconds | `0.5` | Gap above which each derived feature's history resets. Invalid base measurements also reset that feature's history. This is **not** the final signal smoother/evaluator gap limit in `tracking.toml`. The fitter also uses each source recording's original extraction gap limit to reject discontinuous holds; editing a fitted profile does not redo that validation. |
+| `extraction.max_gap_seconds` | Number strictly greater than `0`; seconds | `0.5` | Gap above which each derived feature's history resets. Invalid base measurements also reset that feature's history. This is **not** the final signal smoother/evaluator gap limit in `config/tracking.toml`. The fitter also uses each source recording's original extraction gap limit to reject discontinuous holds; editing a fitted profile does not redo that validation. |
 | `extraction.temporal_enabled` | JSON boolean | `true` | Generate `__std` and `__velocity` for every enabled base. False removes these outputs and rejects active rules that reference them. A temporal output needs at least two valid samples in its window, otherwise it is unavailable during warmup. |
 
 Currently registered base names are `shoulder_angle_deg`, `head_offset_x`,
@@ -134,7 +134,7 @@ missing diagnostics do not block the active rules.
 
 These three fields have no Python constructor defaults. The durations are stored
 as seconds and use actual timestamps, not frame counts. In the standard live and
-replay commands they are overridden by `tracking.toml`, as described above.
+replay commands they are overridden by `config/tracking.toml`, as described above.
 
 | JSON field | Type / range | Meaning and practical effect |
 |---|---|---|
@@ -171,7 +171,7 @@ will not match the actual model for live use.
 
 Filter method, live gap limit, plot history/display selection, fitting trim and
 coverage limits, `min_scale`, and fitting acceptance criteria live in
-[`tracking.toml`](tracking.toml), not profile JSON. `clear_ratio` is a fitting
+[`config/tracking.toml`](config/tracking.toml), not profile JSON. `clear_ratio` is a fitting
 policy there; the profile stores the resulting explicit `clear_threshold`.
 Feature descriptions/formulas remain in [FEATURES.md](FEATURES.md). Adding any of
 these as extra JSON keys makes loading fail rather than configuring the app.
@@ -194,14 +194,14 @@ with `src` on Python's import path, as in the application and tests.
 ```python
 from pathlib import Path
 
-from calibration_profile import (
+from calibration.calibration_profile import (
     CalibrationProfile,
     CaptureIdentity,
     EvaluationSettings,
     FeatureReference,
     FeatureRule,
 )
-from features import FeatureConfig
+from posture.features import FeatureConfig
 
 profile = CalibrationProfile(
     extraction=FeatureConfig(
@@ -299,7 +299,7 @@ and their constructors validate values. Field checks are derived from those same
 dataclasses rather than maintained in parallel lists.
 
 The complete extraction settings are saved with the profile. Loading never reads
-`features.toml`, so editing the TOML does not silently alter an existing profile.
+`config/features.toml`, so editing the TOML does not silently alter an existing profile.
 Feature formulas and descriptions stay in `features.py` / `FEATURES.md`; they are
 not copied into every JSON file. `feature_version` identifies their semantics:
 changes to feature calculations must increment `FEATURE_VERSION` and regenerate

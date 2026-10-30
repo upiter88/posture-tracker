@@ -1,7 +1,7 @@
 """Versioned personal calibration data, independent of fitting and evaluation.
 
 The profile snapshots extraction settings and references registry outputs by name.
-It never reads features.toml implicitly. See CALIBRATION_PROFILES.md for the JSON
+It never reads config/features.toml implicitly. See CALIBRATION_PROFILES.md for the JSON
 contract, feature selection, score units, compatibility, and manipulation examples.
 """
 
@@ -17,10 +17,10 @@ from tempfile import NamedTemporaryFile
 from typing import Literal
 from uuid import uuid4
 
-from features import FEATURE_VERSION, FeatureConfig, PostureFeatures
+from posture.features import FEATURE_VERSION, FeatureConfig, PostureFeatures
 
 PROFILE_SCHEMA_VERSION = 1
-DEFAULT_PROFILE_PATH = Path(__file__).resolve().parent.parent / "data/profiles/current.json"
+DEFAULT_PROFILE_PATH = Path(__file__).resolve().parents[2] / "data/profiles/current.json"
 
 
 class ProfileError(ValueError):
@@ -129,9 +129,9 @@ class EvaluationSettings:
     clear_seconds: float
 
     def __post_init__(self) -> None:
-        _number(self.smoothing_seconds, "evaluation.smoothing_seconds")
-        _number(self.enter_seconds, "evaluation.enter_seconds", inclusive=False)
-        _number(self.clear_seconds, "evaluation.clear_seconds", inclusive=False)
+        _number(self.smoothing_seconds, "posture.evaluation.smoothing_seconds")
+        _number(self.enter_seconds, "posture.evaluation.enter_seconds", inclusive=False)
+        _number(self.clear_seconds, "posture.evaluation.clear_seconds", inclusive=False)
 
 
 @dataclass(frozen=True)

@@ -7,13 +7,19 @@ import numpy as np
 import pytest
 
 import app
-import live_tracking
-from calibration_profile import CalibrationProfile, CaptureIdentity, EvaluationSettings, FeatureReference, FeatureRule
-from capture import Frame
-from evaluation import PostureEvaluator
-from features import FeatureConfig, PostureFeatures
-from live_preview import raw_thresholds, render_dashboard
-from pose import PoseObservation
+from calibration.calibration_profile import (
+    CalibrationProfile,
+    CaptureIdentity,
+    EvaluationSettings,
+    FeatureReference,
+    FeatureRule,
+)
+from capture.capture import Frame
+from capture.pose import PoseObservation
+from posture.evaluation import PostureEvaluator
+from posture.features import FeatureConfig, PostureFeatures
+from presentation.live_preview import raw_thresholds, render_dashboard
+from tracking import live_tracking
 
 
 def profile(model_hash="a" * 64):

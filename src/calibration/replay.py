@@ -2,9 +2,9 @@
 
 from dataclasses import dataclass
 
-from calibration_data import CalibrationRecording
-from calibration_profile import CalibrationProfile
-from evaluation import PostureEvaluator, PostureResult
+from calibration.calibration_data import CalibrationRecording
+from calibration.calibration_profile import CalibrationProfile
+from posture.evaluation import PostureEvaluator, PostureResult
 
 
 @dataclass(frozen=True)
@@ -79,9 +79,9 @@ def main() -> int:
     import pyarrow as pa
     import pyarrow.parquet as pq
 
-    from calibration_data import load_recording
-    from calibration_profile import DEFAULT_PROFILE_PATH
-    from tracking_config import TrackingSettings
+    from calibration.calibration_data import load_recording
+    from calibration.calibration_profile import DEFAULT_PROFILE_PATH
+    from tracking.tracking_config import TrackingSettings
 
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument("--session", type=Path, required=True)

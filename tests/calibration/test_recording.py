@@ -6,10 +6,10 @@ import numpy as np
 import pyarrow.parquet as pq
 import pytest
 
-from capture import Frame
-from features import FeatureConfig, FeatureExtractor
-from pose import PoseLandmark, PoseObservation
-from recording import CalibrationRecorder, RecordingError
+from calibration.recording import CalibrationRecorder, RecordingError
+from capture.capture import Frame
+from capture.pose import PoseLandmark, PoseObservation
+from posture.features import FeatureConfig, FeatureExtractor
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def test_write_failure_is_reported_and_previous_part_survives(recorder, monkeypa
         def fail_write(*args, **kwargs):
             raise OSError("disk full")
 
-        monkeypatch.setattr("recording.pq.write_table", fail_write)
+        monkeypatch.setattr("calibration.recording.pq.write_table", fail_write)
         record_frame(recorder, extractor, 3)
     assert pq.read_table(recorder.path / "samples.parquet").num_rows == 2
     assert not json.loads((recorder.path / "session.json").read_text())["complete"]

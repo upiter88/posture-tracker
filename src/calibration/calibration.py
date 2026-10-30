@@ -8,9 +8,9 @@ from typing import Literal
 
 import numpy as np
 
-from calibration_data import CalibrationRecording
-from calibration_profile import CalibrationProfile, EvaluationSettings, FeatureReference, FeatureRule
-from evaluation import deviation_score
+from calibration.calibration_data import CalibrationRecording
+from calibration.calibration_profile import CalibrationProfile, EvaluationSettings, FeatureReference, FeatureRule
+from posture.evaluation import deviation_score
 
 
 @dataclass(frozen=True)

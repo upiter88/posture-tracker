@@ -6,8 +6,8 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from capture import Frame
-from pose import PoseError, PoseLandmarksTracker
+from capture.capture import Frame
+from capture.pose import PoseError, PoseLandmarksTracker
 
 
 def make_frame(timestamp_ns=1_000_000_000):
@@ -29,7 +29,7 @@ def backend(monkeypatch, tmp_path):
     landmarker = Mock()
     landmarker.detect_for_video.return_value = result_with_pose()
     factory = Mock(return_value=landmarker)
-    monkeypatch.setattr("pose.PoseLandmarker.create_from_options", factory)
+    monkeypatch.setattr("capture.pose.PoseLandmarker.create_from_options", factory)
     return PoseLandmarksTracker(model), landmarker, factory
 
 
@@ -93,17 +93,17 @@ def test_timestamp_rounding_and_reopen(backend):
 def test_capture_clock_ties_survive_calibration_pipeline(backend, monkeypatch, tmp_path):
     import pyarrow.parquet as pq
 
-    from capture import CameraCapture
-    from features import FeatureConfig, FeatureExtractor
-    from recording import CalibrationRecorder
+    from calibration.recording import CalibrationRecorder
+    from capture.capture import CameraCapture
+    from posture.features import FeatureConfig, FeatureExtractor
 
     estimator, landmarker, _ = backend
     device = Mock()
     device.read.return_value = (True, make_frame().image)
-    monkeypatch.setattr("capture.cv2.VideoCapture", lambda: device)
+    monkeypatch.setattr("capture.capture.cv2.VideoCapture", lambda: device)
     times = iter([1_000_000_000, 1_000_000_000, 1_050_000_000])
-    monkeypatch.setattr("capture.perf_counter_ns", lambda: next(times))
-    monkeypatch.setattr("recording.perf_counter_ns", lambda: 1_025_000_000)
+    monkeypatch.setattr("capture.capture.perf_counter_ns", lambda: next(times))
+    monkeypatch.setattr("calibration.recording.perf_counter_ns", lambda: 1_025_000_000)
     config = FeatureConfig()
     extractor = FeatureExtractor(config)
     recorder = CalibrationRecorder(tmp_path / "sessions", config, 0, estimator.model_path)

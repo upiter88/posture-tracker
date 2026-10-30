@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from calibration_profile import CaptureIdentity
-from features import FEATURE_VERSION, FeatureConfig, PostureFeatures
+from calibration.calibration_profile import CaptureIdentity
+from posture.features import FEATURE_VERSION, FeatureConfig, PostureFeatures
 
 
 @dataclass(frozen=True)

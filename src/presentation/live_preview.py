@@ -8,11 +8,11 @@ from types import TracebackType
 import cv2
 import numpy as np
 
-from calibration_profile import CalibrationProfile
-from capture import Frame
-from evaluation import PostureResult
-from pose import PoseObservation
-from preview import draw_pose
+from calibration.calibration_profile import CalibrationProfile
+from capture.capture import Frame
+from capture.pose import PoseObservation
+from posture.evaluation import PostureResult
+from presentation.preview import draw_pose
 
 BACKGROUND = (27, 24, 21)
 PANEL = (40, 36, 32)

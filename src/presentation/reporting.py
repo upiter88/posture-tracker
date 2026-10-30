@@ -3,8 +3,8 @@
 import logging
 from time import monotonic
 
-from capture import Frame
-from pose import PoseObservation
+from capture.capture import Frame
+from capture.pose import PoseObservation
 
 
 class PoseDiagnostics:

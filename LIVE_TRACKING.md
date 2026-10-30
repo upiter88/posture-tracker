@@ -31,7 +31,7 @@ are defined by `recording.py`; filter-selection keys apply only in tracking mode
 
 ## Configuration
 
-Edit `tracking.toml`. It has six short sections:
+Edit `config/tracking.toml`. It has six short sections:
 
 | Section | Purpose | When changes apply |
 |---|---|---|
@@ -61,11 +61,11 @@ making it an active decision rule. Adding a `[[rules]]` block makes a feature
 active when fitting the next profile. Rule/output names are checked against the
 existing extraction configuration; no feature-specific dispatch is required.
 All selected outputs must have been recorded. Calibration extraction settings
-remain in `features.toml`; the profile preserves those used in its recordings.
+remain in `config/features.toml`; the profile preserves those used in its recordings.
 
 **Settings precedence:** the profile supplies extraction settings, reference
 statistics, active rules, thresholds, and capture identity. Live/replay entry
-points explicitly override its evaluation timing with `tracking.toml` so you can
+points explicitly override its evaluation timing with `config/tracking.toml` so you can
 experiment without refitting references. The profile's timing values preserve the
 initial fitting/replay policy. The camera-independent `PostureEvaluator` API uses
 the supplied profile's settings directly. Replay reports record effective timing
@@ -156,7 +156,7 @@ filter can be added after comparing replay results.
 ## Replay another recording
 
 ```powershell
-uv run src/replay.py --session data/calibration/<session-id>
+uv run src/calibration/replay.py --session data/calibration/<session-id>
 ```
 
 This uses the same evaluator as live tracking and writes

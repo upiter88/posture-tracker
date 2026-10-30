@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
-from capture import Frame
-from pose import PoseObservation
+from capture.capture import Frame
+from capture.pose import PoseObservation
 
 
 def draw_pose(frame: Frame, pose: PoseObservation) -> NDArray[np.uint8]:

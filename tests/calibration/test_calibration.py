@@ -8,11 +8,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from calibration import FitSettings, RuleSpec, fit_profile
-from calibration_data import CalibrationRecording, RecordedSample, load_recording
-from calibration_profile import CaptureIdentity, EvaluationSettings
-from features import FEATURE_VERSION, FeatureConfig, PostureFeatures
-from replay import replay_recording
+from calibration.calibration import FitSettings, RuleSpec, fit_profile
+from calibration.calibration_data import CalibrationRecording, RecordedSample, load_recording
+from calibration.calibration_profile import CaptureIdentity, EvaluationSettings
+from calibration.replay import replay_recording
+from posture.features import FEATURE_VERSION, FeatureConfig, PostureFeatures
 
 
 def recording(session="test"):

@@ -9,11 +9,11 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from calibration import fit_profile
-from calibration_data import latest_recording, load_recording
-from calibration_profile import DEFAULT_PROFILE_PATH
-from replay import replay_recording
-from tracking_config import TrackingSettings
+from calibration.calibration import fit_profile
+from calibration.calibration_data import latest_recording, load_recording
+from calibration.calibration_profile import DEFAULT_PROFILE_PATH
+from calibration.replay import replay_recording
+from tracking.tracking_config import TrackingSettings
 
 DATA_ROOT = Path(__file__).resolve().parent.parent / "data/calibration"
 

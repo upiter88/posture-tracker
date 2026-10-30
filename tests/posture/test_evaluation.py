@@ -5,10 +5,16 @@ from dataclasses import replace
 
 import pytest
 
-from calibration_profile import CalibrationProfile, CaptureIdentity, EvaluationSettings, FeatureReference, FeatureRule
-from evaluation import PostureEvaluator
-from features import FeatureConfig, PostureFeatures
-from smoothing import SignalSmoother, SmoothingSettings
+from calibration.calibration_profile import (
+    CalibrationProfile,
+    CaptureIdentity,
+    EvaluationSettings,
+    FeatureReference,
+    FeatureRule,
+)
+from posture.evaluation import PostureEvaluator
+from posture.features import FeatureConfig, PostureFeatures
+from posture.smoothing import SignalSmoother, SmoothingSettings
 
 
 def profile():

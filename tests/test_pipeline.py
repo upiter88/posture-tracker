@@ -7,10 +7,10 @@ import numpy as np
 import pytest
 
 import app
-from capture import Frame
-from pose import PoseError, PoseLandmark, PoseObservation
-from preview import draw_pose
-from reporting import PoseDiagnostics
+from capture.capture import Frame
+from capture.pose import PoseError, PoseLandmark, PoseObservation
+from presentation.preview import draw_pose
+from presentation.reporting import PoseDiagnostics
 
 
 @pytest.mark.parametrize("inference_fails", [False, True])
@@ -82,7 +82,7 @@ def test_default_pipeline_order_and_cleanup(monkeypatch, inference_fails):
 
 def test_diagnostics_reports_missing_pose_and_interval_counts(monkeypatch, caplog):
     times = iter([0.0, 0.5, 1.1, 2.2])
-    monkeypatch.setattr("reporting.monotonic", lambda: next(times))
+    monkeypatch.setattr("presentation.reporting.monotonic", lambda: next(times))
     diagnostics = PoseDiagnostics()
     frame = Frame(np.zeros((10, 10, 3), dtype=np.uint8), 1, 10)
     found = PoseObservation(10, 10, 10, {"nose": PoseLandmark(0.5, 0.5, 0, 0.9, 0.8)})
@@ -196,14 +196,14 @@ def test_invalid_calibration_config_fails_before_opening_camera(monkeypatch):
 
 
 def test_preview_normalizes_uppercase_label_and_preserves_source(monkeypatch):
-    from preview import VideoPreview
+    from presentation.preview import VideoPreview
 
     frame = Frame(np.zeros((80, 640, 3), dtype=np.uint8), 1, 10)
     pose = PoseObservation(10, 640, 80, {})
     displayed = []
-    monkeypatch.setattr("preview.cv2.imshow", lambda name, image: displayed.append(image))
-    monkeypatch.setattr("preview.cv2.waitKey", lambda delay: ord("2"))
-    monkeypatch.setattr("preview.cv2.getWindowProperty", lambda *args: 1)
+    monkeypatch.setattr("presentation.preview.cv2.imshow", lambda name, image: displayed.append(image))
+    monkeypatch.setattr("presentation.preview.cv2.waitKey", lambda delay: ord("2"))
+    monkeypatch.setattr("presentation.preview.cv2.getWindowProperty", lambda *args: 1)
     preview = VideoPreview()
     preview.status_text = "UNLABELED | usable | 1.0s | saved 0/1"
     assert preview.show(frame, pose)

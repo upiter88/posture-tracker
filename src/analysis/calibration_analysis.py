@@ -36,7 +36,7 @@ SHOW_PLOTS = True  # Set True for interactive notebook use.
 def find_project_root() -> Path:
     start = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
     for candidate in (start, *start.parents):
-        if (candidate / "src/features.py").is_file() and (candidate / "pyproject.toml").is_file():
+        if (candidate / "src/posture/features.py").is_file() and (candidate / "pyproject.toml").is_file():
             return candidate
     raise FileNotFoundError("Run this notebook from inside the PostureTracker project")
 
@@ -63,8 +63,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
 
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
-from features import FEATURE_VERSION, FeatureConfig, FeatureExtractor  # noqa: E402
-from pose import PoseLandmark, PoseObservation  # noqa: E402
+from capture.pose import PoseLandmark, PoseObservation  # noqa: E402
+from posture.features import FEATURE_VERSION, FeatureConfig, FeatureExtractor  # noqa: E402
 
 # %% [markdown]
 # ## 1. Load the original recording

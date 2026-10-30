@@ -14,9 +14,9 @@ from uuid import uuid4
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from capture import Frame
-from features import FEATURE_VERSION, FEATURES, TEMPORAL_FEATURES, FeatureConfig, PostureFeatures
-from pose import LANDMARK_NAMES, PoseObservation
+from capture.capture import Frame
+from capture.pose import LANDMARK_NAMES, PoseObservation
+from posture.features import FEATURE_VERSION, FEATURES, TEMPORAL_FEATURES, FeatureConfig, PostureFeatures
 
 SCHEMA_VERSION = 1
 SAMPLES_FILENAME = "samples.parquet"

@@ -4,7 +4,7 @@
 
 Build a local Python application that uses a webcam to detect sustained deviations from a user's calibrated reference posture. Develop and validate one module at a time, beginning with camera capture.
 
-The application has an optional live camera preview and an explicit calibration-recording mode, with no cloud service or custom model training. It runs in a single process with a synchronous processing loop. Calibration recording loads the project-level features.toml, saves landmark/feature samples locally, and accepts manual posture labels. A reference posture is a user-selected baseline, not a medical assessment of correct posture.
+The application has an optional live camera preview and an explicit calibration-recording mode, with no cloud service or custom model training. It runs in a single process with a synchronous processing loop. Calibration recording loads the project-level config/features.toml, saves landmark/feature samples locally, and accepts manual posture labels. A reference posture is a user-selected baseline, not a medical assessment of correct posture.
 
 ## Initial assumptions
 
@@ -74,11 +74,11 @@ Start with the default camera index. Optional width, height, and frame-rate requ
 
 Capture timestamps use `time.perf_counter_ns()`, a high-resolution monotonic clock. Python 3.12's `monotonic_ns()` uses a coarse Windows tick clock that can repeat between reads. Capture advances tied readings by 1 ns to guarantee strict ordering and resets this state on reopen. Label events use the same performance clock to stay aligned with frames.
 
-The command-line runner captures frames and estimates poses by default. The optional `--preview` flag displays each frame with selected landmarks through `src/preview.py`; the default remains console-only. `app` passes `Frame` and `PoseObservation` values directly to the preview and stops when it returns False (Q, Esc, or window close). `app` owns the model, camera, and optional preview through an exit stack. Distinguish an unavailable camera from a failure while reading an already opened camera, report a clear error, and exit cleanly. Do not add automatic reconnection initially.
+The command-line runner captures frames and estimates poses by default. The optional `--preview` flag displays each frame with selected landmarks through `src/presentation/preview.py`; the default remains console-only. `app` passes `Frame` and `PoseObservation` values directly to the preview and stops when it returns False (Q, Esc, or window close). `app` owns the model, camera, and optional preview through an exit stack. Distinguish an unavailable camera from a failure while reading an already opened camera, report a clear error, and exit cleanly. Do not add automatic reconnection initially.
 
 ### Pose estimation
 
-`src/pose.py` implements a context-managed `PoseEstimator` using MediaPipe Pose Landmarker with the local Lite float16 version 1 model, one person, VIDEO mode, confidence thresholds of 0.5, and segmentation disabled. Model setup instructions are in `models/README.md`; the model binary is excluded from Git and is never downloaded at application startup.
+`src/capture/pose.py` implements a context-managed `PoseEstimator` using MediaPipe Pose Landmarker with the local Lite float16 version 1 model, one person, VIDEO mode, confidence thresholds of 0.5, and segmentation disabled. Model setup instructions are in `models/README.md`; the model binary is excluded from Git and is never downloaded at application startup.
 
 `estimate(frame)` converts BGR to RGB without modifying the source image and returns the nose, eyes, ears, mouth corners, and shoulders with confidence information. The model receives milliseconds relative to the first frame. Capture timestamps must strictly increase; millisecond rounding collisions advance the model timestamp by 1 ms. Observations preserve the original nanosecond timestamp. Reopening the estimator resets the model clock.
 
@@ -86,13 +86,13 @@ No detection returns an empty observation, without carrying forward the previous
 
 ### Feature extraction
 
-src/features.py implements shoulder-line angle, head x/y offsets, mouth-to-shoulder and eye-to-ear vertical midpoint separations, apparent shoulder width, and nose-to-ear distance asymmetry. Decorated functions keep each feature name, required landmarks, units, formal definition, interpretation, and calculation together. Registries derive names from those functions. FEATURES.md is generated from those definitions. No feature requires hips. Optional temporal operations add rolling population standard deviation and instantaneous velocity per base feature using actual timestamps. History resets per feature on invalid measurements or excessive gaps.
+src/posture/features.py implements shoulder-line angle, head x/y offsets, mouth-to-shoulder and eye-to-ear vertical midpoint separations, apparent shoulder width, and nose-to-ear distance asymmetry. Decorated functions keep each feature name, required landmarks, units, formal definition, interpretation, and calculation together. Registries derive names from those functions. FEATURES.md is generated from those definitions. No feature requires hips. Optional temporal operations add rolling population standard deviation and instantaneous velocity per base feature using actual timestamps. History resets per feature on invalid measurements or excessive gaps.
 
 Validate feature behavior before deciding which measurements should drive posture classification. Apparent head movement may reflect distance changes or rotation rather than slouching.
 
 ### Calibration
 
-Calibration recording is implemented before reference fitting: --calibrate opens the preview, loads features.toml, and records raw landmarks plus features with persistent V/I/U labels. Label changes apply from the next frame; measurement validity remains separate from posture labels. A context-managed recorder writes independently readable Parquet parts every 5 capture seconds or 300 frames and flushes on exit. Each part is written to a temporary file before rename. Session metadata preserves effective configuration, feature definitions, schema/feature versions, and the exact model hash. See README.md for schema and recovery details.
+Calibration recording is implemented before reference fitting: --calibrate opens the preview, loads config/features.toml, and records raw landmarks plus features with persistent V/I/U labels. Label changes apply from the next frame; measurement validity remains separate from posture labels. A context-managed recorder writes independently readable Parquet parts every 5 capture seconds or 300 frames and flushes on exit. Each part is written to a temporary file before rename. Session metadata preserves effective configuration, feature definitions, schema/feature versions, and the exact model hash. See README.md for schema and recovery details.
 
 Reference fitting remains future work: collect several seconds of valid measurements while the user holds their chosen reference posture. Reject incomplete observations and detect excessive movement before accepting a baseline. The exact duration and stability limits remain implementation decisions.
 
@@ -155,7 +155,7 @@ camera.read() -> estimator.estimate(frame) -> diagnostics.report(...)
 
 Default capture and optional preview preserve the previous behavior. --calibrate opens the preview automatically and enables feature extraction and recording. All resources are context managed; the recorder closes before the preview, camera, and estimator. Labels begin as unlabeled. Live tracking is available through the separate --track mode, using a fitted calibration profile.
 
-Calibration-profile milestone 1 is implemented in `src/calibration_profile.py`.
+Calibration-profile milestone 1 is implemented in `src/calibration/calibration_profile.py`.
 Immutable dataclasses store extraction settings, references, active base/temporal
 rules, dimensionless hysteresis thresholds, explicit timing, source recording IDs,
 and capture/model identity. JSON persistence is versioned and atomic. Profiles
@@ -163,7 +163,7 @@ validate active output names against the existing `FeatureConfig.columns`; the
 feature module needs no profile-specific changes. Extraction and active rule
 selection are separate, and missing diagnostics do not make active inputs
 unavailable. Feature definitions remain in `features.py` and `FEATURES.md` rather
-than being duplicated in JSON. Profiles do not implicitly read `features.toml`. Automatic fitting
+than being duplicated in JSON. Profiles do not implicitly read `config/features.toml`. Automatic fitting
 and replay/live evaluation now live in separate modules described in LIVE_TRACKING.md. See
 `CALIBRATION_PROFILES.md` for the contract and a synthetic example.
 
@@ -172,16 +172,16 @@ Run uv run src/app.py --calibrate after dependency installation and local model 
 
 ## Live evaluation milestone
 
-`src/calibration_data.py` validates recorded sessions. `src/calibration.py` fits
+`src/calibration/calibration_data.py` validates recorded sessions. `src/calibration/calibration.py` fits
 explicit feature rules with hold-balanced references and blocked validation;
-`src/fit_profile.py` publishes a profile and replay report. `src/smoothing.py`
-implements elapsed-time EMA and moving average. `src/evaluation.py` applies the
+`src/fit_profile.py` publishes a profile and replay report. `src/posture/smoothing.py`
+implements elapsed-time EMA and moving average. `src/posture/evaluation.py` applies the
 profile's scores, hysteresis, persistence, and UNKNOWN semantics independently of
-the camera. `src/replay.py` exercises the same evaluator offline.
+the camera. `src/calibration/replay.py` exercises the same evaluator offline.
 
-`src/live_tracking.py` owns live resources and passes captured poses through the
-existing feature extractor and new evaluator to `src/live_preview.py`. The latter
+`src/tracking/live_tracking.py` owns live resources and passes captured poses through the
+existing feature extractor and new evaluator to `src/presentation/live_preview.py`. The latter
 draws the camera, raw/smoothed time traces, thresholds, and state progress in one
 OpenCV window. `src/app.py` only adds mode dispatch; features, capture, pose, and
-preview modules are reused. `tracking.toml` controls fitting and live policy; see
+preview modules are reused. `config/tracking.toml` controls fitting and live policy; see
 LIVE_TRACKING.md for precedence, provisional settings, and validation limitations.
