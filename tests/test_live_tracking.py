@@ -56,6 +56,24 @@ def test_live_runner_switches_filters_and_closes_resources(monkeypatch, tmp_path
     path = tmp_path / "profile.json"
     p.save(path)
     events = []
+    sound_results = []
+    sound_stops = []
+
+    class Sound:
+        def __init__(self, settings):
+            assert settings.volume == 0.3
+
+        def __enter__(self):
+            return self
+
+        def update(self, result):
+            sound_results.append(result.status)
+
+        def stop(self):
+            sound_stops.append(True)
+
+        def __exit__(self, *args):
+            self.stop()
 
     class Tracker:
         model_path = model
@@ -108,7 +126,10 @@ def test_live_runner_switches_filters_and_closes_resources(monkeypatch, tmp_path
     monkeypatch.setattr(live_tracking, "PoseLandmarksTracker", Tracker)
     monkeypatch.setattr(live_tracking, "CameraCapture", lambda index: Camera())
     monkeypatch.setattr(live_tracking, "LivePreview", Preview)
+    monkeypatch.setattr(live_tracking, "PostureSoundAlert", Sound)
     assert live_tracking.run_live(path) == 0
+    assert sound_results == ["UNKNOWN"] * 3
+    assert len(sound_stops) == 3  # Two filter changes and resource shutdown.
     assert events == [
         "tracker open",
         "camera open",

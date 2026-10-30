@@ -27,3 +27,8 @@ clear_seconds = 0.75 # sustained reference posture before clearing
 [display]
 features = ["head_offset_y", "mouth_shoulder_vertical"] # up to four; [] uses active outputs
 history_seconds = 15.0
+
+[sound]
+enabled = true
+volume = 0.3 # tone amplitude: 0.0 (mute) to 1.0 (maximum); system volume also applies
+repeat_seconds = 5.0 # repeat while status is DEVIATION; minimum 0.3 seconds

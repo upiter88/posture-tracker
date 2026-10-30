@@ -31,7 +31,7 @@ are defined by `recording.py`; filter-selection keys apply only in tracking mode
 
 ## Configuration
 
-Edit `tracking.toml`. It has five short sections:
+Edit `tracking.toml`. It has six short sections:
 
 | Section | Purpose | When changes apply |
 |---|---|---|
@@ -40,6 +40,21 @@ Edit `tracking.toml`. It has five short sections:
 | `[smoothing]` | EMA/moving-average/raw choice, duration, maximum tracking gap | Next live/replay run |
 | `[evaluation]` | Entry and clearing persistence in seconds | Next live/replay run |
 | `[display]` | Up to four raw/smoothed outputs and history duration | Next live run |
+| `[sound]` | Enable posture tones, volume, and repeat interval | Next live run |
+
+On Windows, tracking plays a short tone when the evaluator enters `DEVIATION`,
+then repeats every `sound.repeat_seconds` (default 5 seconds) while it persists.
+The existing entry delay applies before the first tone. Recovery, UNKNOWN status,
+filter changes, and exit stop playback. Playback runs asynchronously so it does
+not pause capture or inference. Replay and calibration do not play alerts.
+
+Set `sound.volume` from `0.0` (mute) to `1.0` (maximum tone amplitude); the default
+is `0.3`. System and application mixer volume also affect perceived loudness.
+Set `sound.enabled = false` to disable sound. The repeat interval must be at least
+0.3 seconds (the tone duration). Settings apply on the next tracking run and do
+not require refitting. Older configurations without `[sound]` use these defaults.
+Sound uses Windows' built-in playback; other platforms or audio playback failures
+log a warning and continue visual tracking without sound.
 
 Example: add `mouth_shoulder_vertical` to `display.features` to inspect it without
 making it an active decision rule. Adding a `[[rules]]` block makes a feature
@@ -169,6 +184,7 @@ before treating calibration replay as evidence of everyday warning reliability.
 | `replay.py` | Offline evaluation and trace/report export |
 | `live_preview.py` | Camera + plots, without inference or posture decisions |
 | `live_tracking.py` | Resource ownership and live orchestration |
+| `sound_alert.py` | Nonblocking posture tones and repeat timing |
 | `tracking_config.py` | Read the small fitting/live configuration |
 
 `features.py`, capture, pose tracking, and the existing preview are reused.

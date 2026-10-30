@@ -190,7 +190,9 @@ uv run src/app.py --track
 The current workspace already has a fitted profile from the latest recording.
 Use **1** for raw signals, **2** for EMA, **3** for moving average, and **Q/Esc** to
 quit. Edit [`tracking.toml`](tracking.toml) to select active fitting rules, displayed
-features, smoothing, persistence, and plot history. Profile references/thresholds
+features, smoothing, persistence, plot history, and posture alert volume. On Windows,
+invalid posture triggers a short repeating sound; configure `[sound]` to adjust
+volume (`0.0`–`1.0`), repeat interval, or disable it. Profile references/thresholds
 remain separate from editable live timing. [`LIVE_TRACKING.md`](LIVE_TRACKING.md)
 describes fitting, validation, replay, configuration precedence, and the module boundaries.
 

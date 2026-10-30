@@ -14,6 +14,7 @@ from evaluation import PostureEvaluator
 from features import FeatureExtractor
 from live_preview import LivePreview
 from pose import PoseError, PoseLandmarksTracker
+from sound_alert import PostureSoundAlert
 from tracking_config import TrackingSettings
 
 FILTER_KEYS = {ord("1"): "none", ord("2"): "ema", ord("3"): "moving_average"}
@@ -41,6 +42,7 @@ def run_live(profile_path: Path, camera_index: int = 0, duration: float | None =
                     settings.display.history_seconds,
                     settings.smoothing.max_gap_seconds,
                 ) as preview,
+                PostureSoundAlert(settings.sound) as sound,
             ):
                 started = monotonic()
                 checked_capture = False
@@ -54,6 +56,7 @@ def run_live(profile_path: Path, camera_index: int = 0, duration: float | None =
                     pose = tracker.estimate(frame)
                     sample = extractor.extract(pose)
                     result = evaluator.update(sample)
+                    sound.update(result)
                     if result.status != previous_status:
                         logging.info("%s: %s", result.status, result.reason)
                         previous_status = result.status
@@ -61,6 +64,7 @@ def run_live(profile_path: Path, camera_index: int = 0, duration: float | None =
                         break
                     selected = FILTER_KEYS.get(preview.last_key)
                     if selected is not None and selected != method:
+                        sound.stop()
                         method = selected
                         evaluator = PostureEvaluator(profile, method, settings.smoothing.max_gap_seconds, displayed)
                         preview.method = method
