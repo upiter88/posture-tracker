@@ -159,3 +159,43 @@ label/hold coverage, distribution and correlation plots, whole-hold threshold
 validation, transition timing, boundary sensitivity, normalization diagnostics,
 and a transfer check using frozen thresholds from the preceding analysis.
 It also saves its conclusions and records the limitations of single-session data.
+
+## Calibration profiles (step 1)
+
+[`src/calibration_profile.py`](src/calibration_profile.py) defines a versioned
+personal profile with complete extraction settings, independently selected active
+rules, reference statistics, thresholds, timing, capture identity, and recording
+provenance. It validates profiles and saves/loads them atomically as JSON.
+
+See [`CALIBRATION_PROFILES.md`](CALIBRATION_PROFILES.md) for the data contract and
+examples of selecting, adding, or removing base/temporal features with ordinary
+dataclasses. [`examples/calibration_profile.json`](examples/calibration_profile.json)
+is a synthetic, explicitly unfitted format example.
+
+Profiles preserve their own extraction settings instead of rereading
+`features.toml`. Diagnostic features can remain enabled without blocking an active
+rule when their measurements are missing. Automatic fitting, replay evaluation, and live tracking are implemented as
+separate modules; see [LIVE_TRACKING.md](LIVE_TRACKING.md).
+
+
+## Live posture evaluation
+
+Fit from the newest calibration recording, then open the camera-and-signal dashboard:
+
+```powershell
+uv run src/fit_profile.py
+uv run src/app.py --track
+```
+
+The current workspace already has a fitted profile from the latest recording.
+Use **1** for raw signals, **2** for EMA, **3** for moving average, and **Q/Esc** to
+quit. Edit [`tracking.toml`](tracking.toml) to select active fitting rules, displayed
+features, smoothing, persistence, and plot history. Profile references/thresholds
+remain separate from editable live timing. [`LIVE_TRACKING.md`](LIVE_TRACKING.md)
+describes fitting, validation, replay, configuration precedence, and the module boundaries.
+
+To evaluate another saved recording with the same live evaluator:
+
+```powershell
+uv run src/replay.py --session data/calibration/<session-id>
+```

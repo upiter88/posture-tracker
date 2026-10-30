@@ -1,0 +1,49 @@
+{
+  "extraction": {
+    "enabled": [
+      "head_offset_y",
+      "shoulder_width"
+    ],
+    "min_visibility": 0.5,
+    "min_presence": 0.5,
+    "min_shoulder_width_px": 5.0,
+    "head_reference": "eyes_midpoint",
+    "window_seconds": 1.0,
+    "max_gap_seconds": 0.5,
+    "temporal_enabled": false
+  },
+  "rules": [
+    {
+      "name": "head_height",
+      "feature": "head_offset_y",
+      "reference": {
+        "centre": 0.7,
+        "scale": 0.05,
+        "sample_count": 100
+      },
+      "direction": "decrease",
+      "enter_threshold": 2.0,
+      "clear_threshold": 1.0
+    }
+  ],
+  "evaluation": {
+    "smoothing_seconds": 0.2,
+    "enter_seconds": 2.0,
+    "clear_seconds": 1.0
+  },
+  "capture": {
+    "camera_index": 0,
+    "image_width": 640,
+    "image_height": 480,
+    "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "source_sessions": [
+    "synthetic-example"
+  ],
+  "method": "illustrative-not-fitted",
+  "combination": "any",
+  "profile_id": "example-not-fitted",
+  "created_utc": "2026-10-28T00:00:00+00:00",
+  "schema_version": 1,
+  "feature_version": 1
+}

@@ -9,9 +9,10 @@ from time import monotonic
 
 import cv2
 
+from calibration_profile import DEFAULT_PROFILE_PATH
 from capture import CameraCapture, CaptureError
 from features import FeatureConfig, FeatureExtractor
-from pose import PoseError, PoseEstimator
+from pose import PoseError, PoseLandmarksTracker
 from preview import VideoPreview
 from recording import CalibrationRecorder, RecordingError
 from reporting import PoseDiagnostics
@@ -42,9 +43,20 @@ def main() -> int:
     )
     parser.add_argument("--calibrate", action="store_true", help="record labeled landmarks and features; opens preview")
     parser.add_argument(
+        "--track", action="store_true", help="evaluate posture with camera and raw/smoothed signal plots"
+    )
+    parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE_PATH, help="saved live calibration profile")
+    parser.add_argument(
         "--output", type=Path, default=Path("data/calibration"), help="calibration session parent directory"
     )
     args = parser.parse_args()
+    if args.track and args.calibrate:
+        parser.error("--track and --calibrate are separate modes")
+    if args.track:
+        from live_tracking import run_live
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+        return run_live(args.profile, args.camera, args.duration)
     try:
         feature_config = (
             FeatureConfig.load(Path(__file__).resolve().parent.parent / "features.toml")
@@ -60,7 +72,7 @@ def main() -> int:
     try:
         logging.info("Opening camera %d; press Ctrl+C to stop.", args.camera)
         with ExitStack() as stack:
-            estimator = stack.enter_context(PoseEstimator())
+            estimator = stack.enter_context(PoseLandmarksTracker())
             camera = stack.enter_context(CameraCapture(args.camera))
             preview = stack.enter_context(VideoPreview()) if args.preview or args.calibrate else None
             recorder = None

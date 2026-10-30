@@ -1,0 +1,29 @@
+# Rule feature names refer to existing FeatureConfig outputs, including __std.
+# Add a [[rules]] block to fit another independent rule. Correlated features
+# should remain diagnostics until they add value on separate validation sessions.
+[[rules]]
+name = "head_height"
+feature = "head_offset_y"
+direction = "decrease" # decrease, increase, or either
+min_scale = 0.005 # noise floor in native feature units
+
+[fitting]
+trim_seconds = 1.0
+min_hold_seconds = 2.0 # usable duration AFTER trimming both ends
+min_holds_per_label = 2
+min_valid_fraction = 0.8
+min_balanced_accuracy = 0.8 # equal weight per hold, averaged across labels
+clear_ratio = 0.5 # clearing score / entry score; provisional hysteresis policy
+
+[smoothing]
+method = "ema" # ema, moving_average, or none; also switch with keys 1/2/3
+seconds = 0.35 # EMA time constant or moving-average window; saved in fitted profile
+max_gap_seconds = 0.5 # reset filter and state after tracking gaps
+
+[evaluation]
+enter_seconds = 1.5 # sustained deviation before switching status
+clear_seconds = 0.75 # sustained reference posture before clearing
+
+[display]
+features = ["head_offset_y", "mouth_shoulder_vertical"] # up to four; [] uses active outputs
+history_seconds = 15.0

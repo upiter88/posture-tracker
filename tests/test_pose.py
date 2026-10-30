@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from capture import Frame
-from pose import PoseError, PoseEstimator
+from pose import PoseError, PoseLandmarksTracker
 
 
 def make_frame(timestamp_ns=1_000_000_000):
@@ -30,7 +30,7 @@ def backend(monkeypatch, tmp_path):
     landmarker.detect_for_video.return_value = result_with_pose()
     factory = Mock(return_value=landmarker)
     monkeypatch.setattr("pose.PoseLandmarker.create_from_options", factory)
-    return PoseEstimator(model), landmarker, factory
+    return PoseLandmarksTracker(model), landmarker, factory
 
 
 def test_maps_landmarks_and_converts_bgr_without_mutating_frame(backend):
@@ -163,7 +163,7 @@ def test_rejects_nonfinite_model_output(backend):
 
 def test_missing_model_has_setup_instructions(tmp_path):
     with pytest.raises(PoseError, match="models/README.md"):
-        PoseEstimator(tmp_path / "missing.task").open()
+        PoseLandmarksTracker(tmp_path / "missing.task").open()
 
 
 def test_initialization_error_is_actionable(backend):

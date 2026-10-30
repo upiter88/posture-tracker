@@ -24,6 +24,7 @@ A front-facing camera is the starting constraint. Forward slouching and neck dis
 | `pose` | Run a pretrained pose model and expose relevant landmarks and confidence | `Frame` | `PoseObservation` |
 | `features` | Calculate normalized geometric measurements and determine measurement validity | `PoseObservation` | `PostureFeatures` |
 | `recording` | Persist raw landmarks, features, and manual labels in bounded Parquet parts | Frames, observations, features, preview keys | Local session dataset and metadata |
+| `calibration_profile` | Validate and persist personal references and active feature rules independently of fitting | Explicit settings and reference values | Versioned JSON profile |
 | `calibration` | Collect valid reference samples and calculate a stable baseline | `PostureFeatures` during calibration | `ReferencePosture` |
 | `evaluation` | Compare features with the baseline, smooth measurements, and apply persistence rules | Features, baseline, timestamp | `PostureResult` |
 | `reporting` | Print status changes and diagnostic information | Calibration progress or `PostureResult` | Console output |
@@ -152,6 +153,35 @@ camera.read() -> estimator.estimate(frame) -> diagnostics.report(...)
                                       -> recorder.set_label(preview.last_key) [affects next frame]
 ```
 
-Default capture and optional preview preserve the previous behavior. --calibrate opens the preview automatically and enables feature extraction and recording. All resources are context managed; the recorder closes before the preview, camera, and estimator. Labels begin as unlabeled. No classification or fitted reference baseline exists yet.
+Default capture and optional preview preserve the previous behavior. --calibrate opens the preview automatically and enables feature extraction and recording. All resources are context managed; the recorder closes before the preview, camera, and estimator. Labels begin as unlabeled. Live tracking is available through the separate --track mode, using a fitted calibration profile.
+
+Calibration-profile milestone 1 is implemented in `src/calibration_profile.py`.
+Immutable dataclasses store extraction settings, references, active base/temporal
+rules, dimensionless hysteresis thresholds, explicit timing, source recording IDs,
+and capture/model identity. JSON persistence is versioned and atomic. Profiles
+validate active output names against the existing `FeatureConfig.columns`; the
+feature module needs no profile-specific changes. Extraction and active rule
+selection are separate, and missing diagnostics do not make active inputs
+unavailable. Feature definitions remain in `features.py` and `FEATURES.md` rather
+than being duplicated in JSON. Profiles do not implicitly read `features.toml`. Automatic fitting
+and replay/live evaluation now live in separate modules described in LIVE_TRACKING.md. See
+`CALIBRATION_PROFILES.md` for the contract and a synthetic example.
 
 Run uv run src/app.py --calibrate after dependency installation and local model setup. See README.md for controls, storage, and configuration; FEATURES.md for the generated mathematical reference. Camera-independent tests cover geometry and normalization, feature quality, motion timing/reset behavior, label boundaries through the application loop, Parquet round trips, write failures, interruption, resource cleanup, pose conversion, and source-image preservation. Real hardware capture, live preview key focus, and tracking quality require manual validation.
+
+
+## Live evaluation milestone
+
+`src/calibration_data.py` validates recorded sessions. `src/calibration.py` fits
+explicit feature rules with hold-balanced references and blocked validation;
+`src/fit_profile.py` publishes a profile and replay report. `src/smoothing.py`
+implements elapsed-time EMA and moving average. `src/evaluation.py` applies the
+profile's scores, hysteresis, persistence, and UNKNOWN semantics independently of
+the camera. `src/replay.py` exercises the same evaluator offline.
+
+`src/live_tracking.py` owns live resources and passes captured poses through the
+existing feature extractor and new evaluator to `src/live_preview.py`. The latter
+draws the camera, raw/smoothed time traces, thresholds, and state progress in one
+OpenCV window. `src/app.py` only adds mode dispatch; features, capture, pose, and
+preview modules are reused. `tracking.toml` controls fitting and live policy; see
+LIVE_TRACKING.md for precedence, provisional settings, and validation limitations.

@@ -65,7 +65,7 @@ def test_default_pipeline_order_and_cleanup(monkeypatch, inference_fails):
 
     monkeypatch.setattr("sys.argv", ["app.py", "--preview"])
     monkeypatch.setattr(app, "CameraCapture", lambda index: Camera())
-    monkeypatch.setattr(app, "PoseEstimator", Estimator)
+    monkeypatch.setattr(app, "PoseLandmarksTracker", Estimator)
     monkeypatch.setattr(app, "VideoPreview", Preview)
     monkeypatch.setattr(app, "PoseDiagnostics", lambda: Mock(report=report))
     assert app.main() == (1 if inference_fails else 0)
@@ -171,7 +171,7 @@ def test_calibration_pipeline_records_preview_labels_and_cleans_up(monkeypatch, 
 
     monkeypatch.setattr("sys.argv", ["app.py", "--calibrate", "--output", str(tmp_path / "sessions")])
     monkeypatch.setattr(app, "CameraCapture", lambda index: Camera())
-    monkeypatch.setattr(app, "PoseEstimator", Estimator)
+    monkeypatch.setattr(app, "PoseLandmarksTracker", Estimator)
     monkeypatch.setattr(app, "VideoPreview", Preview)
     assert app.main() == 0
     session = next((tmp_path / "sessions").iterdir())

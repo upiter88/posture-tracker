@@ -86,7 +86,7 @@ def _finite_coordinate(value: float | None, name: str) -> float:
     return value
 
 
-class PoseEstimator:
+class PoseLandmarksTracker:
     """Own a single-person landmarker, tracking sequential frames in VIDEO mode."""
 
     def __init__(self, model_path: str | Path = DEFAULT_MODEL_PATH) -> None:
@@ -96,7 +96,7 @@ class PoseEstimator:
         self._last_timestamp_ns: int | None = None
         self._last_timestamp_ms = -1
 
-    def open(self) -> PoseEstimator:
+    def open(self) -> PoseLandmarksTracker:
         if self._landmarker is not None:
             raise RuntimeError("Pose estimator is already open.")
         if not self.model_path.is_file():
@@ -167,7 +167,7 @@ class PoseEstimator:
             except (RuntimeError, ValueError) as error:
                 raise PoseError(f"Cannot close pose model: {error}") from error
 
-    def __enter__(self) -> PoseEstimator:
+    def __enter__(self) -> PoseLandmarksTracker:
         return self.open()
 
     def __exit__(
